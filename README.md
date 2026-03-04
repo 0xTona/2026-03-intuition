@@ -40,7 +40,7 @@ _Anything included in this section is considered a publicly known issue and is t
 - Production config assumptions: `minDeposit = 1e16` and `minShare = 1e6`, and `MultiVault` enforces these floors. Findings that rely on `1 wei`style deposits or leaving vaults below minimum share floor should be treated as invalid under production params.
 - `TrustBonding` intentionally has a single-epoch claim window; older rewards become unclaimable by users and are handled as unclaimed emissions.
 - `AtomWallet` signature format is intentionally strict: only 65-byte raw ECDSA or 77-byte ECDSA+time-window suffix.
-- Router behavior is intentional: ERC20 flow refunds excess ETH sent with the transaction (`msg.value - bridgeFee`), while the ETH flow consumes `msg.value - bridgeFee` as swap input (no separate excess-refund path).
+- Router behavior and configuration are intentional: `TrustSwapAndBridgeRouter` is constant-configured (TRUST/WETH/router/factory/quoter/hub/domain/gas/finality values embedded in contract code), has no owner/admin role, and exposes no admin setter functions. ERC20 flow refunds excess ETH sent with the transaction (`msg.value - bridgeFee`), while the ETH flow consumes `msg.value - bridgeFee` as swap input (no separate excess-refund path). Importantly,  `TrustSwapAndBridgeRouter` contract is intended to only ever be deployed on the Base mainnet (chain id 8453).
 
 # Overview
 
@@ -222,16 +222,19 @@ While blockchains have historically decentralized money, **Intuition decentraliz
 
 # Additional context
 
-## Areas of concern (where to focus for bugs)
-- `TrustSwapAndBridgeRouter`: packed path parsing/pool validation, bridge fee handling, and external call sequencing (swap router + bridge hub).
-- `AtomWallet`: signature decoding/validation semantics (PR #135), owner/entrypoint authorization boundaries, and ownership claim transition logic.
-- `TrustBonding`: epoch boundary accounting, utilization-ratio math, and unclaimed-emissions accounting semantics (PR [#134](https://github.com/0xIntuition/intuition-contracts-v2/pull/134)).
-- `ProgressiveCurve` + `OffsetProgressiveCurve`: redeem/withdraw rounding correctness and edge-case behavior at low-share states (PR #136).
+## Areas to focus (differential changes)
+- Full files remain in scope for maximum competition coverage. The following line ranges are where the differential changes occurred and are recommended focus areas.
+- `TrustBonding.sol`: lines `335-340` (unclaimed rewards calculation semantics).
+- `ProgressiveCurve.sol`: line `240` (math update).
+- `OffsetProgressiveCurve.sol`: line `247` (math update).
+- `AtomWallet.sol`: lines `285-311` (signature validation logic) and `337-361` (`validUntil`/`validAfter` extraction from signature).
+- `TrustSwapAndBridgeRouter.sol` (periphery): entire contract is in scope; focus on packed path parsing/pool validation, bridge fee handling, and external call sequencing across swap + bridge flows.
 
 ## Main invariants
 
 - Router path invariants: ETH path must start with WETH and all paths must end with TRUST; all hops must map to existing pools before swap.
 - Router fee/value invariants: swap/bridge reverts if bridge fee is insufficient; ERC20 flow refunds all ETH above required bridge fee.
+- Router config invariants: there is no owner/admin control path; router/factory/quoter/bridge configuration is compile-time `constant` data.
 
 - AtomWallet auth invariant: only `owner()` or `EntryPoint` can execute wallet actions; deposit withdrawal is only by owner or self-call.
 - `AtomWallet` signature invariant: validation only accepts 65/77-byte signatures; time-window metadata is interpreted from signature suffix (PR [#135](https://github.com/0xIntuition/intuition-contracts-v2/pull/135) behavior).
@@ -244,7 +247,7 @@ While blockchains have historically decentralized money, **Intuition decentraliz
 
 | Role | Description |
 | ---- | ----------- |
-| `TrustSwapAndBridgeRouter` — `owner` (`Ownable2Step`) | Can set router, factory, quoter, and bridge configuration. |
+| `TrustSwapAndBridgeRouter` | No privileged runtime role. The contract is not `Ownable`; router/factory/quoter/bridge configuration values are embedded as `constant`s and cannot be changed via admin setters. |
 | `TrustBonding` — `timelock` | Controls parameter updates; minimum delay of 3 days. |
 | `TrustBonding` — `DEFAULT_ADMIN_ROLE` | Admin and unpause rights; also inherits `VotingEscrow` admin actions. |
 | `TrustBonding` — `PAUSER_ROLE` | Can only pause the contract. |
@@ -307,7 +310,3 @@ The test **must execute successfully** for your submission to be considered vali
 Employees of Intuition and employees' family members are ineligible to participate in this audit.
 
 Code4rena's rules cannot be overridden by the contents of this README. In case of doubt, please check with C4 staff.
-
-
-
-
