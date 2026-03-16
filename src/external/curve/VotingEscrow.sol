@@ -25,17 +25,17 @@ pragma solidity 0.8.29;
  * # 0 +--------+------> time
  * #       maxtime (2 years?)
  */
-import { IERC20 } from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Removed from original source.
 // import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
 // Replaces Ownable2StepUpgradeable
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
 struct Point {
     int128 bias;
@@ -65,7 +65,11 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     event TokenSet(address token);
     event MinTimeSet(uint256 min_time);
     event Deposit(
-        address indexed provider, uint256 value, uint256 indexed locktime, DepositType deposit_type, uint256 ts
+        address indexed provider,
+        uint256 value,
+        uint256 indexed locktime,
+        DepositType deposit_type,
+        uint256 ts
     );
     event Withdraw(address indexed provider, uint256 value, uint256 ts);
     event Supply(uint256 prevSupply, uint256 supply);
@@ -182,13 +186,45 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     /// @param old_locked Pevious locked amount / end lock time for the user
     /// @param new_locked New locked amount / end lock time for the user
     function _checkpoint(address _addr, LockedBalance memory old_locked, LockedBalance memory new_locked) internal {
+        //@note
+        //Intention
+        //  1) Initialise per-user slope/bias deltas (only if _addr != 0)
+        //      1.1) compute `u_old`, `u_new`:
+        //          `slope = amount / MAX_TIME`
+        //          `bias = slope * remaining_time`
+        //      1.2) read `old_locked.end`, `new_locked.end`
+        //  2) Catch up the global point_history week-by-week from last checkpoint to now
+        //      2.1) compute `block_slope` for estimating block numbers
+        //      2.2) iterate up to 255 weekly ticks
+        //          2.2.1) apply d_slope = slope_changes[t_i] at each expired tick
+        //          2.2.2) decay last_point.bias by (slope * elapsed); clamp both bias and slope >= 0
+        //          2.2.3) estimate last_point.blk via block_slope interpolation
+        //          2.2.4) write each weekly point into point_history[_epoch]; break when t_i == now
+        //      2.3) advance global epoch to current week
+        //  3) Update global point `point_history[_epoch]`
+        //      3.1) last_point.slope += u_new.slope - u_old.slope
+        //      3.2) last_point.bias  += u_new.bias  - u_old.bias
+        //      3.3) clamp both >= 0
+        //  5) Schedule future slope corrections (only if _addr != 0)
+        //      5.1) if old_locked.end is still future: unwind old slope change, re-add u_old.slope
+        //          5.1.1) if ends are equal: subtract u_new.slope from same bucket (deposit, not extension)
+        //      5.2) if new_locked.end is further future than old: subtract u_new.slope from new bucket
+        //  6) Record user point history
+        //      6.1) increment user_point_epoch[addr]
+        //      6.2) stamp u_new with current ts/blk and store in user_point_history
+        //Follow-up
+        //  A) 255 WEEKs?
+        //      -> 255 WEEKs = 4 years. It's max lock time + 2 years, so should be enough for anyone.
+
         Point memory u_old;
         Point memory u_new;
         int128 old_dslope = 0;
         int128 new_dslope = 0;
         uint256 _epoch = epoch;
 
+        //1 {
         if (_addr != address(0x0)) {
+            //1.1 {
             // Calculate slopes and biases
             // Kept at zero when they have to
             if (old_locked.end > block.timestamp && old_locked.amount > 0) {
@@ -199,7 +235,9 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
                 u_new.slope = new_locked.amount / iMAXTIME;
                 u_new.bias = u_new.slope * int128(int256(new_locked.end - block.timestamp));
             }
+            //} 1.1
 
+            //1.2 {
             // Read values of scheduled changes in the slope
             // old_locked.end can be in the past and in the future
             // new_locked.end can ONLY by in the FUTURE unless everything expired: than zeros
@@ -211,9 +249,13 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
                     new_dslope = slope_changes[new_locked.end];
                 }
             }
+            //} 1.2
         }
+        //} 1
 
-        Point memory last_point = Point({ bias: 0, slope: 0, ts: block.timestamp, blk: block.number });
+        //2 {
+        //2.1 {
+        Point memory last_point = Point({bias: 0, slope: 0, ts: block.timestamp, blk: block.number});
         if (_epoch > 0) {
             last_point = point_history[_epoch];
         }
@@ -231,7 +273,9 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
         }
         // If last point is already recorded in this block, slope=0
         // But that's ok b/c we know the block in such case
+        //} 2.1
 
+        //2.2 {
         // Go over weeks to fill history and calculate what the current point is
         uint256 t_i = (last_checkpoint / WEEK) * WEEK;
         for (uint256 i = 0; i < 255; ++i) {
@@ -266,7 +310,10 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
                 point_history[_epoch] = last_point;
             }
         }
+        //} 2.2
+        //} 2
 
+        //3 {
         epoch = _epoch;
         // Now point_history is filled until t=now
 
@@ -285,6 +332,7 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
 
         // Record the changed point into history
         point_history[_epoch] = last_point;
+        //} 3
 
         if (_addr != address(0x0)) {
             // Schedule the slope changes (slope is going down)
@@ -329,9 +377,7 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
         uint256 unlock_time,
         LockedBalance memory locked_balance,
         DepositType deposit_type
-    )
-        internal
-    {
+    ) internal {
         LockedBalance memory _locked = locked_balance;
         uint256 supply_before = supply;
 
@@ -440,12 +486,7 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     function increase_amount_and_time(
         uint256 _value,
         uint256 _unlock_time
-    )
-        external
-        nonReentrant
-        onlyUserOrWhitelist
-        notUnlocked
-    {
+    ) external nonReentrant onlyUserOrWhitelist notUnlocked {
         require(_value > 0 || _unlock_time > 0, "Value and Unlock cannot both be 0");
         if (_value > 0 && _unlock_time > 0) {
             _increase_amount(_value);
@@ -492,12 +533,7 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     function withdraw_and_create_lock(
         uint256 _value,
         uint256 _unlock_time
-    )
-        external
-        nonReentrant
-        onlyUserOrWhitelist
-        notUnlocked
-    {
+    ) external nonReentrant onlyUserOrWhitelist notUnlocked {
         _withdraw();
         _create_lock(_value, _unlock_time);
     }
@@ -542,6 +578,10 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
      *               less than or equal to `_ts`.
      */
     function _find_timestamp_epoch(uint256 _ts, uint256 max_epoch) internal view returns (uint256) {
+        //@note
+        //Assumption
+        //  point_history[max_epoch] is initialized (i.e. max_epoch > 0)
+
         // No checkpoints at all means no supply
         if (max_epoch == 0) {
             return 0;
@@ -588,6 +628,10 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
      *               than or equal to `_ts`.
      */
     function _find_user_timestamp_epoch(address addr, uint256 _ts, uint256 max_epoch) internal view returns (uint256) {
+        //@note
+        //Follow-up
+        //  _ts > user_point_history[addr][max_epoch].ts but is user_point_history[addr][max_epoch].ts initialized?
+
         // No checkpoints at all means no balance
         if (max_epoch == 0) {
             return 0;
@@ -704,6 +748,7 @@ contract VotingEscrow is AccessControlUpgradeable, ReentrancyGuardUpgradeable {
     function _supply_at(Point memory point, uint256 t) internal view returns (uint256) {
         Point memory last_point = point;
         uint256 t_i = (last_point.ts / WEEK) * WEEK;
+
         for (uint256 i = 0; i < 255; ++i) {
             t_i += WEEK;
             int128 d_slope = 0;

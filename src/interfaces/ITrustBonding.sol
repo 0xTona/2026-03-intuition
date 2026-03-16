@@ -111,8 +111,7 @@ interface ITrustBonding {
         address _satelliteEmissionsController,
         uint256 _systemUtilizationLowerBound,
         uint256 _personalUtilizationLowerBound
-    )
-        external;
+    ) external;
 
     /**
      * @notice Returns the length of an epoch in seconds
@@ -234,10 +233,7 @@ interface ITrustBonding {
     function getUserRewardsForEpoch(
         address account,
         uint256 epoch
-    )
-        external
-        view
-        returns (uint256 eligibleRewards, uint256 maxRewards);
+    ) external view returns (uint256 eligibleRewards, uint256 maxRewards);
 
     /**
      * @notice Returns the Annual Percentage Yield (APY) for a specific epoch

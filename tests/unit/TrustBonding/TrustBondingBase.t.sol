@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { console, Vm } from "forge-std/src/Test.sol";
-import {
-    TransparentUpgradeableProxy,
-    ITransparentUpgradeableProxy
-} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {console, Vm} from "forge-std/src/Test.sol";
+import {TransparentUpgradeableProxy, ITransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import { BaseTest } from "tests/BaseTest.t.sol";
-import { MetaERC20Dispatcher } from "src/protocol/emissions/MetaERC20Dispatcher.sol";
-import { MetaERC20DispatchInit, FinalityState } from "src/interfaces/IMetaLayer.sol";
-import { CoreEmissionsControllerInit } from "src/interfaces/ICoreEmissionsController.sol";
-import { ITrustBonding } from "src/interfaces/ITrustBonding.sol";
-import { TrustBonding } from "src/protocol/emissions/TrustBonding.sol";
-import { SatelliteEmissionsController } from "src/protocol/emissions/SatelliteEmissionsController.sol";
+import {BaseTest} from "tests/BaseTest.t.sol";
+import {MetaERC20Dispatcher} from "src/protocol/emissions/MetaERC20Dispatcher.sol";
+import {MetaERC20DispatchInit, FinalityState} from "src/interfaces/IMetaLayer.sol";
+import {CoreEmissionsControllerInit} from "src/interfaces/ICoreEmissionsController.sol";
+import {ITrustBonding} from "src/interfaces/ITrustBonding.sol";
+import {TrustBonding} from "src/protocol/emissions/TrustBonding.sol";
+import {SatelliteEmissionsController} from "src/protocol/emissions/SatelliteEmissionsController.sol";
 
 contract TrustBondingBase is BaseTest {
     // Initializer structs
@@ -59,11 +56,15 @@ contract TrustBondingBase is BaseTest {
         SatelliteEmissionsController satelliteEmissionsControllerImpl = new SatelliteEmissionsController();
 
         // Deploy proxy
-        TransparentUpgradeableProxy satelliteEmissionsControllerProxyContract =
-            new TransparentUpgradeableProxy(address(satelliteEmissionsControllerImpl), users.admin, "");
+        TransparentUpgradeableProxy satelliteEmissionsControllerProxyContract = new TransparentUpgradeableProxy(
+            address(satelliteEmissionsControllerImpl),
+            users.admin,
+            ""
+        );
 
-        SatelliteEmissionsController satelliteEmissionsController =
-            SatelliteEmissionsController(payable(address(satelliteEmissionsControllerProxyContract)));
+        SatelliteEmissionsController satelliteEmissionsController = SatelliteEmissionsController(
+            payable(address(satelliteEmissionsControllerProxyContract))
+        );
 
         // Initialize the contract
         metaERC20DispatchInit = MetaERC20DispatchInit({
@@ -89,8 +90,11 @@ contract TrustBondingBase is BaseTest {
     function _deployNewTrustBondingContract() internal returns (TrustBonding) {
         TrustBonding newTrustBondingImpl = new TrustBonding();
 
-        TransparentUpgradeableProxy proxy =
-            new TransparentUpgradeableProxy(address(newTrustBondingImpl), users.admin, "");
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(newTrustBondingImpl),
+            users.admin,
+            ""
+        );
 
         return TrustBonding(address(proxy));
     }
@@ -142,14 +146,14 @@ contract TrustBondingBase is BaseTest {
     function _calculateExpectedRewards(address user, uint256 epoch) internal view returns (uint256) {
         uint256 rawRewards = protocol.trustBonding.userEligibleRewardsForEpoch(user, epoch);
         uint256 utilizationRatio = protocol.trustBonding.getPersonalUtilizationRatio(user, epoch);
-        return rawRewards * utilizationRatio / BASIS_POINTS_DIVISOR;
+        return (rawRewards * utilizationRatio) / BASIS_POINTS_DIVISOR;
     }
 
     function _setupUserForTrustBonding(address user) internal {
-        resetPrank({ msgSender: user });
+        resetPrank({msgSender: user});
 
         // Give plenty of balance so initial + additional locks always succeed
-        protocol.wrappedTrust.deposit{ value: additionalTokens * 10 }();
+        protocol.wrappedTrust.deposit{value: additionalTokens * 10}();
 
         // Approve once for all TrustBonding tests
         protocol.wrappedTrust.approve(address(protocol.trustBonding), type(uint256).max);

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { FixedPointMathLib } from "solady/utils/FixedPointMathLib.sol";
-import { ICoreEmissionsController } from "src/interfaces/ICoreEmissionsController.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
+import {ICoreEmissionsController} from "src/interfaces/ICoreEmissionsController.sol";
 
 contract CoreEmissionsController is ICoreEmissionsController {
     using FixedPointMathLib for uint256;
@@ -49,9 +49,7 @@ contract CoreEmissionsController is ICoreEmissionsController {
         uint256 emissionsPerEpoch,
         uint256 emissionsReductionCliff,
         uint256 emissionsReductionBasisPoints
-    )
-        internal
-    {
+    ) internal {
         _validateTimestampStart(startTimestamp);
         _validateEmissionsPerEpoch(emissionsPerEpoch);
         _validateCliff(emissionsReductionCliff);
@@ -64,7 +62,11 @@ contract CoreEmissionsController is ICoreEmissionsController {
         _EMISSIONS_RETENTION_FACTOR = BASIS_POINTS_DIVISOR - emissionsReductionBasisPoints;
 
         emit Initialized(
-            startTimestamp, emissionsLength, emissionsPerEpoch, emissionsReductionCliff, emissionsReductionBasisPoints
+            startTimestamp,
+            emissionsLength,
+            emissionsPerEpoch,
+            emissionsReductionCliff,
+            emissionsReductionBasisPoints
         );
     }
 
@@ -223,11 +225,7 @@ contract CoreEmissionsController is ICoreEmissionsController {
         uint256 baseEmissions,
         uint256 retentionFactor,
         uint256 cliffsToApply
-    )
-        internal
-        pure
-        returns (uint256)
-    {
+    ) internal pure returns (uint256) {
         if (cliffsToApply == 0) return baseEmissions;
 
         // Convert retentionFactor to WAD (1e18) ratio

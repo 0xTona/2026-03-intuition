@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-import { IBaseCurve } from "src/interfaces/IBaseCurve.sol";
+import {IBaseCurve} from "src/interfaces/IBaseCurve.sol";
 
 /**
  * @title  BaseCurve
@@ -70,11 +70,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 assets,
         uint256 totalAssets,
         uint256 totalShares
-    )
-        external
-        view
-        virtual
-        returns (uint256 shares);
+    ) external view virtual returns (uint256 shares);
 
     /// @notice Preview how many assets would be required to mint a specific amount of shares
     /// @dev Rounding direction of previewMint is always up
@@ -86,11 +82,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 shares,
         uint256 totalShares,
         uint256 totalAssets
-    )
-        external
-        view
-        virtual
-        returns (uint256 assets);
+    ) external view virtual returns (uint256 assets);
 
     /// @notice Preview how many shares would be redeemed for a withdrawal of assets
     /// @dev Rounding direction of previewWithdraw is always up
@@ -102,11 +94,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 assets,
         uint256 totalAssets,
         uint256 totalShares
-    )
-        external
-        view
-        virtual
-        returns (uint256 shares);
+    ) external view virtual returns (uint256 shares);
 
     /// @notice Preview how many assets would be returned for burning a specific amount of shares
     /// @dev Rounding direction of previewRedeem is always down
@@ -118,11 +106,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 shares,
         uint256 totalShares,
         uint256 totalAssets
-    )
-        external
-        view
-        virtual
-        returns (uint256 assets);
+    ) external view virtual returns (uint256 assets);
 
     /// @notice Convert assets to shares at a specific point on the curve
     /// @dev Rounding direction of convertToShares is always down
@@ -134,11 +118,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 assets,
         uint256 totalAssets,
         uint256 totalShares
-    )
-        external
-        view
-        virtual
-        returns (uint256 shares);
+    ) external view virtual returns (uint256 shares);
 
     /// @notice Convert shares to assets at a specific point on the curve
     /// @dev Rounding direction of convertToAssets is always down
@@ -150,11 +130,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 shares,
         uint256 totalShares,
         uint256 totalAssets
-    )
-        external
-        view
-        virtual
-        returns (uint256 assets);
+    ) external view virtual returns (uint256 assets);
 
     /// @notice Get the current price of a share
     /// @param totalShares Total quantity of shares already awarded by the curve
@@ -203,10 +179,7 @@ abstract contract BaseCurve is IBaseCurve, Initializable {
         uint256 totalShares,
         uint256 maxAssetsCap,
         uint256 maxSharesCap
-    )
-        internal
-        pure
-    {
+    ) internal pure {
         if (totalAssets > maxAssetsCap || totalShares > maxSharesCap) revert BaseCurve_DomainExceeded();
     }
 }

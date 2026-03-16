@@ -1,27 +1,20 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
-import { FixedPointMathLib } from "solady/utils/FixedPointMathLib.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {FixedPointMathLib} from "solady/utils/FixedPointMathLib.sol";
 
-import { IMultiVault, ApprovalTypes, VaultState, VaultType } from "src/interfaces/IMultiVault.sol";
-import { IAtomWalletFactory } from "src/interfaces/IAtomWalletFactory.sol";
-import { IBondingCurveRegistry } from "src/interfaces/IBondingCurveRegistry.sol";
-import { IAtomWallet } from "src/interfaces/IAtomWallet.sol";
-import { ITrustBonding } from "src/interfaces/ITrustBonding.sol";
-import {
-    GeneralConfig,
-    AtomConfig,
-    TripleConfig,
-    WalletConfig,
-    VaultFees,
-    BondingCurveConfig
-} from "src/interfaces/IMultiVaultCore.sol";
+import {IMultiVault, ApprovalTypes, VaultState, VaultType} from "src/interfaces/IMultiVault.sol";
+import {IAtomWalletFactory} from "src/interfaces/IAtomWalletFactory.sol";
+import {IBondingCurveRegistry} from "src/interfaces/IBondingCurveRegistry.sol";
+import {IAtomWallet} from "src/interfaces/IAtomWallet.sol";
+import {ITrustBonding} from "src/interfaces/ITrustBonding.sol";
+import {GeneralConfig, AtomConfig, TripleConfig, WalletConfig, VaultFees, BondingCurveConfig} from "src/interfaces/IMultiVaultCore.sol";
 
-import { MultiVaultCore } from "src/protocol/MultiVaultCore.sol";
+import {MultiVaultCore} from "src/protocol/MultiVaultCore.sol";
 
 /**
  * @title  MultiVault
@@ -173,15 +166,17 @@ contract MultiVault is
         WalletConfig memory _walletConfig,
         VaultFees memory _vaultFees,
         BondingCurveConfig memory _bondingCurveConfig
-    )
-        external
-        initializer
-    {
+    ) external initializer {
         __AccessControl_init();
         __ReentrancyGuard_init();
         __Pausable_init();
         __MultiVaultCore_init(
-            _generalConfig, _atomConfig, _tripleConfig, _walletConfig, _vaultFees, _bondingCurveConfig
+            _generalConfig,
+            _atomConfig,
+            _tripleConfig,
+            _walletConfig,
+            _vaultFees,
+            _bondingCurveConfig
         );
         _grantRole(DEFAULT_ADMIN_ROLE, _generalConfig.admin);
     }
@@ -292,19 +287,19 @@ contract MultiVault is
     /// @inheritdoc IMultiVault
     function currentSharePrice(bytes32 termId, uint256 curveId) external view returns (uint256) {
         VaultState storage vaultState = _vaults[termId][curveId];
-        return IBondingCurveRegistry(bondingCurveConfig.registry)
-            .currentPrice(curveId, vaultState.totalShares, vaultState.totalAssets);
+        return
+            IBondingCurveRegistry(bondingCurveConfig.registry).currentPrice(
+                curveId,
+                vaultState.totalShares,
+                vaultState.totalAssets
+            );
     }
 
     /// @inheritdoc IMultiVault
     function previewAtomCreate(
         bytes32 termId,
         uint256 assets
-    )
-        external
-        view
-        returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees)
-    {
+    ) external view returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) {
         return _calculateAtomCreate(termId, assets);
     }
 
@@ -312,11 +307,7 @@ contract MultiVault is
     function previewTripleCreate(
         bytes32 termId,
         uint256 assets
-    )
-        external
-        view
-        returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees)
-    {
+    ) external view returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) {
         return _calculateTripleCreate(termId, assets);
     }
 
@@ -325,14 +316,10 @@ contract MultiVault is
         bytes32 termId,
         uint256 curveId,
         uint256 assets
-    )
-        public
-        view
-        returns (uint256 shares, uint256 assetsAfterFees)
-    {
+    ) public view returns (uint256 shares, uint256 assetsAfterFees) {
         if (!_isTermCreated(termId)) revert MultiVault_TermDoesNotExist(termId);
         bool isAtomVault = _isAtom(termId);
-        (shares,, assetsAfterFees) = _calculateDeposit(termId, curveId, assets, isAtomVault);
+        (shares, , assetsAfterFees) = _calculateDeposit(termId, curveId, assets, isAtomVault);
     }
 
     /// @inheritdoc IMultiVault
@@ -340,11 +327,7 @@ contract MultiVault is
         bytes32 termId,
         uint256 curveId,
         uint256 shares
-    )
-        public
-        view
-        returns (uint256 assetsAfterFees, uint256 sharesUsed)
-    {
+    ) public view returns (uint256 assetsAfterFees, uint256 sharesUsed) {
         if (!_isTermCreated(termId)) revert MultiVault_TermDoesNotExist(termId);
         return _calculateRedeem(termId, curveId, shares);
     }
@@ -390,13 +373,7 @@ contract MultiVault is
     function createAtoms(
         bytes[] calldata data,
         uint256[] calldata assets
-    )
-        external
-        payable
-        whenNotPaused
-        nonReentrant
-        returns (bytes32[] memory)
-    {
+    ) external payable whenNotPaused nonReentrant returns (bytes32[] memory) {
         uint256 _amount = _validatePayment(assets);
         return _createAtoms(data, assets, _amount);
     }
@@ -410,10 +387,7 @@ contract MultiVault is
         bytes[] calldata _data,
         uint256[] calldata _assets,
         uint256 _payment
-    )
-        internal
-        returns (bytes32[] memory)
-    {
+    ) internal returns (bytes32[] memory) {
         uint256 length = _data.length;
         if (length == 0) {
             revert MultiVault_NoAtomDataProvided();
@@ -425,7 +399,7 @@ contract MultiVault is
 
         bytes32[] memory ids = new bytes32[](length);
 
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ) {
             ids[i] = _createAtom(msg.sender, _data[i], _assets[i]);
             unchecked {
                 ++i;
@@ -469,22 +443,38 @@ contract MultiVault is
         uint256 curveId = bondingCurveConfig.defaultCurveId;
 
         /* --- Calculate final shares and assets after fees --- */
-        (uint256 sharesForReceiver, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) =
-            _calculateAtomCreate(atomId, assets);
+        (uint256 sharesForReceiver, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) = _calculateAtomCreate(
+            atomId,
+            assets
+        );
 
         /* --- Handle protocol fees --- */
         _accumulateVaultProtocolFees(assetsAfterFixedFees);
         address atomWallet = _accumulateAtomWalletFees(atomId, assetsAfterFixedFees);
 
         /* --- Add assets after fees to Atom Vault (User Owned) --- */
-        uint256 userSharesAfter =
-            _updateVaultOnCreation(sender, atomId, curveId, assetsAfterFees, sharesForReceiver, VaultType.ATOM);
+        uint256 userSharesAfter = _updateVaultOnCreation(
+            sender,
+            atomId,
+            curveId,
+            assetsAfterFees,
+            sharesForReceiver,
+            VaultType.ATOM
+        );
 
         /* --- Emit Events --- */
         emit AtomCreated(sender, atomId, data, atomWallet);
 
         emit Deposited(
-            sender, sender, atomId, curveId, assets, assetsAfterFees, sharesForReceiver, userSharesAfter, VaultType.ATOM
+            sender,
+            sender,
+            atomId,
+            curveId,
+            assets,
+            assetsAfterFees,
+            sharesForReceiver,
+            userSharesAfter,
+            VaultType.ATOM
         );
 
         // Increment total terms created
@@ -503,13 +493,7 @@ contract MultiVault is
         bytes32[] calldata predicateIds,
         bytes32[] calldata objectIds,
         uint256[] calldata assets
-    )
-        external
-        payable
-        whenNotPaused
-        nonReentrant
-        returns (bytes32[] memory)
-    {
+    ) external payable whenNotPaused nonReentrant returns (bytes32[] memory) {
         uint256 _amount = _validatePayment(assets);
         return _createTriples(subjectIds, predicateIds, objectIds, assets, _amount);
     }
@@ -526,10 +510,7 @@ contract MultiVault is
         bytes32[] calldata _objectIds,
         uint256[] calldata _assets,
         uint256 _amount
-    )
-        internal
-        returns (bytes32[] memory)
-    {
+    ) internal returns (bytes32[] memory) {
         uint256 length = _subjectIds.length;
         uint256 minCost = _getTripleCost() * _assets.length;
 
@@ -546,7 +527,7 @@ contract MultiVault is
         }
 
         bytes32[] memory ids = new bytes32[](length);
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ) {
             ids[i] = _createTriple(msg.sender, _subjectIds[i], _predicateIds[i], _objectIds[i], _assets[i]);
             unchecked {
                 ++i;
@@ -576,10 +557,7 @@ contract MultiVault is
         bytes32 predicateId,
         bytes32 objectId,
         uint256 assets
-    )
-        internal
-        returns (bytes32 tripleId)
-    {
+    ) internal returns (bytes32 tripleId) {
         tripleId = _calculateTripleId(subjectId, predicateId, objectId);
         _tripleExists(tripleId, subjectId, predicateId, objectId);
 
@@ -597,20 +575,29 @@ contract MultiVault is
         uint256 curveId = bondingCurveConfig.defaultCurveId;
 
         /* --- Calculate final shares and assets after fees --- */
-        (uint256 sharesForReceiver, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) =
-            _calculateTripleCreate(tripleId, assets);
+        (uint256 sharesForReceiver, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) = _calculateTripleCreate(
+            tripleId,
+            assets
+        );
 
         /* --- Accumulate dynamic fees --- */
         _accumulateVaultProtocolFees(assetsAfterFixedFees);
 
         /* --- Add user assets after fees to vault (User Owned) --- */
-        uint256 userSharesAfter =
-            _updateVaultOnCreation(sender, tripleId, curveId, assetsAfterFees, sharesForReceiver, VaultType.TRIPLE);
+        uint256 userSharesAfter = _updateVaultOnCreation(
+            sender,
+            tripleId,
+            curveId,
+            assetsAfterFees,
+            sharesForReceiver,
+            VaultType.TRIPLE
+        );
 
         /* --- Add vault and triple fees to vault (Protocol Owned) --- */
         if (_shouldChargeAtomDepositFraction(tripleId)) {
             _increaseProRataVaultsAssets(
-                tripleId, _feeOnRaw(assetsAfterFixedFees, tripleConfig.atomDepositFractionForTriple)
+                tripleId,
+                _feeOnRaw(assetsAfterFixedFees, tripleConfig.atomDepositFractionForTriple)
             );
         }
 
@@ -662,13 +649,7 @@ contract MultiVault is
         bytes32 termId,
         uint256 curveId,
         uint256 minShares
-    )
-        external
-        payable
-        whenNotPaused
-        nonReentrant
-        returns (uint256)
-    {
+    ) external payable whenNotPaused nonReentrant returns (uint256) {
         if (!_isApprovedToDeposit(msg.sender, receiver)) {
             revert MultiVault_SenderNotApproved();
         }
@@ -685,13 +666,7 @@ contract MultiVault is
         uint256[] calldata curveIds,
         uint256[] calldata assets,
         uint256[] calldata minShares
-    )
-        external
-        payable
-        whenNotPaused
-        nonReentrant
-        returns (uint256[] memory shares)
-    {
+    ) external payable whenNotPaused nonReentrant returns (uint256[] memory shares) {
         uint256 _assetsSum = _validatePayment(assets);
         uint256 length = termIds.length;
 
@@ -709,7 +684,7 @@ contract MultiVault is
             revert MultiVault_SenderNotApproved();
         }
 
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ) {
             shares[i] = _processDeposit(msg.sender, receiver, termIds[i], curveIds[i], assets[i], minShares[i]);
             unchecked {
                 ++i;
@@ -736,10 +711,7 @@ contract MultiVault is
         uint256 curveId,
         uint256 assets,
         uint256 minShares
-    )
-        internal
-        returns (uint256)
-    {
+    ) internal returns (uint256) {
         // --- validations independent of vault type ---
         _validateMinDeposit(assets);
 
@@ -760,12 +732,22 @@ contract MultiVault is
         }
 
         /* --- Calculate final shares and assets after fees --- */
-        (uint256 sharesForReceiver, uint256 assetsAfterMinSharesCost, uint256 assetsAfterFees) =
-            _calculateDeposit(termId, curveId, assets, _vaultType == VaultType.ATOM);
+        (uint256 sharesForReceiver, uint256 assetsAfterMinSharesCost, uint256 assetsAfterFees) = _calculateDeposit(
+            termId,
+            curveId,
+            assets,
+            _vaultType == VaultType.ATOM
+        );
 
         /* --- Slippage check --- */
         _validateMinShares(
-            termId, curveId, assets, sharesForReceiver, assetsAfterMinSharesCost, assetsAfterFees, minShares
+            termId,
+            curveId,
+            assets,
+            sharesForReceiver,
+            assetsAfterMinSharesCost,
+            assetsAfterFees,
+            minShares
         );
 
         /* --- Accumulate dynamic fees --- */
@@ -782,7 +764,8 @@ contract MultiVault is
         } else {
             if (_shouldChargeAtomDepositFraction(termId)) {
                 _increaseProRataVaultsAssets(
-                    termId, _feeOnRaw(assetsAfterMinSharesCost, tripleConfig.atomDepositFractionForTriple)
+                    termId,
+                    _feeOnRaw(assetsAfterMinSharesCost, tripleConfig.atomDepositFractionForTriple)
                 );
             }
         }
@@ -791,8 +774,14 @@ contract MultiVault is
 
         // --- user accounting (returns the user's total balance after mint) ---
         if (isNew && !isDefault) {
-            userBalanceAfter =
-                _updateVaultOnCreation(receiver, termId, curveId, assetsAfterFees, sharesForReceiver, _vaultType);
+            userBalanceAfter = _updateVaultOnCreation(
+                receiver,
+                termId,
+                curveId,
+                assetsAfterFees,
+                sharesForReceiver,
+                _vaultType
+            );
 
             if (_vaultType != VaultType.ATOM) {
                 bytes32 _counterTripleId = _calculateCounterTripleId(termId);
@@ -801,12 +790,26 @@ contract MultiVault is
                 _initializeCounterTripleVault(_counterTripleId, curveId);
             }
         } else {
-            userBalanceAfter =
-                _updateVaultOnDeposit(receiver, termId, curveId, assetsAfterFees, sharesForReceiver, _vaultType);
+            userBalanceAfter = _updateVaultOnDeposit(
+                receiver,
+                termId,
+                curveId,
+                assetsAfterFees,
+                sharesForReceiver,
+                _vaultType
+            );
         }
 
         emit Deposited(
-            sender, receiver, termId, curveId, assets, assetsAfterFees, sharesForReceiver, userBalanceAfter, _vaultType
+            sender,
+            receiver,
+            termId,
+            curveId,
+            assets,
+            assetsAfterFees,
+            sharesForReceiver,
+            userBalanceAfter,
+            _vaultType
         );
 
         return sharesForReceiver;
@@ -823,18 +826,19 @@ contract MultiVault is
         uint256 curveId,
         uint256 shares,
         uint256 minAssets
-    )
-        external
-        whenNotPaused
-        nonReentrant
-        returns (uint256)
-    {
+    ) external whenNotPaused nonReentrant returns (uint256) {
         if (!_isApprovedToRedeem(msg.sender, receiver)) {
             revert MultiVault_RedeemerNotApproved();
         }
 
-        (uint256 rawAssetsBeforeFees, uint256 assetsAfterFees) =
-            _processRedeem(msg.sender, receiver, termId, curveId, shares, minAssets);
+        (uint256 rawAssetsBeforeFees, uint256 assetsAfterFees) = _processRedeem(
+            msg.sender,
+            receiver,
+            termId,
+            curveId,
+            shares,
+            minAssets
+        );
         _removeUtilization(receiver, int256(rawAssetsBeforeFees));
 
         return assetsAfterFees;
@@ -847,20 +851,16 @@ contract MultiVault is
         uint256[] calldata curveIds,
         uint256[] calldata shares,
         uint256[] calldata minAssets
-    )
-        external
-        whenNotPaused
-        nonReentrant
-        returns (uint256[] memory received)
-    {
+    ) external whenNotPaused nonReentrant returns (uint256[] memory received) {
         if (termIds.length == 0 || termIds.length > MAX_BATCH_SIZE) {
             revert MultiVault_InvalidArrayLength();
         }
 
         received = new uint256[](termIds.length);
 
-        if (termIds.length != curveIds.length || termIds.length != shares.length || termIds.length != minAssets.length)
-        {
+        if (
+            termIds.length != curveIds.length || termIds.length != shares.length || termIds.length != minAssets.length
+        ) {
             revert MultiVault_ArraysNotSameLength();
         }
 
@@ -869,9 +869,15 @@ contract MultiVault is
         }
 
         uint256 _totalAssetsBeforeFees;
-        for (uint256 i = 0; i < termIds.length;) {
-            (uint256 assetsBeforeFees, uint256 assetsAfterFees) =
-                _processRedeem(msg.sender, receiver, termIds[i], curveIds[i], shares[i], minAssets[i]);
+        for (uint256 i = 0; i < termIds.length; ) {
+            (uint256 assetsBeforeFees, uint256 assetsAfterFees) = _processRedeem(
+                msg.sender,
+                receiver,
+                termIds[i],
+                curveIds[i],
+                shares[i],
+                minAssets[i]
+            );
             _totalAssetsBeforeFees += assetsBeforeFees;
             received[i] = assetsAfterFees;
             unchecked {
@@ -900,17 +906,14 @@ contract MultiVault is
         uint256 curveId,
         uint256 shares,
         uint256 minAssets
-    )
-        internal
-        returns (uint256, uint256)
-    {
+    ) internal returns (uint256, uint256) {
         VaultType _vaultType = _getVaultType(termId);
 
         _validateRedeem(termId, curveId, receiver, shares, minAssets);
 
         uint256 rawAssetsBeforeFees = _convertToAssets(termId, curveId, shares);
 
-        (uint256 assetsAfterFees,) = _calculateRedeem(termId, curveId, shares);
+        (uint256 assetsAfterFees, ) = _calculateRedeem(termId, curveId, shares);
 
         /* --- Accumulate fees for all vault types --- */
         _accumulateVaultProtocolFees(rawAssetsBeforeFees);
@@ -921,8 +924,14 @@ contract MultiVault is
         }
 
         /* --- Release user assets after fees from vault (User Owned) --- */
-        uint256 userSharesAfter =
-            _updateVaultOnRedeem(receiver, termId, curveId, rawAssetsBeforeFees, shares, _vaultType);
+        uint256 userSharesAfter = _updateVaultOnRedeem(
+            receiver,
+            termId,
+            curveId,
+            rawAssetsBeforeFees,
+            shares,
+            _vaultType
+        );
 
         Address.sendValue(payable(receiver), assetsAfterFees);
 
@@ -1026,10 +1035,9 @@ contract MultiVault is
     }
 
     /// @inheritdoc IMultiVault
-    function setBondingCurveConfig(BondingCurveConfig memory _bondingCurveConfig)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setBondingCurveConfig(
+        BondingCurveConfig memory _bondingCurveConfig
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         bondingCurveConfig = _bondingCurveConfig;
         emit BondingCurveConfigUpdated(_bondingCurveConfig.registry, _bondingCurveConfig.defaultCurveId);
     }
@@ -1089,11 +1097,7 @@ contract MultiVault is
         uint256 curveId,
         uint256 assets,
         bool isAtomVault
-    )
-        internal
-        view
-        returns (uint256 shares, uint256 assetsAfterMinSharesCost, uint256 assetsAfterFees)
-    {
+    ) internal view returns (uint256 shares, uint256 assetsAfterMinSharesCost, uint256 assetsAfterFees) {
         if (isAtomVault) {
             return _calculateAtomDeposit(termId, curveId, assets);
         } else {
@@ -1110,11 +1114,7 @@ contract MultiVault is
     function _calculateAtomCreate(
         bytes32 termId,
         uint256 assets
-    )
-        internal
-        view
-        returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees)
-    {
+    ) internal view returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees) {
         uint256 curveId = bondingCurveConfig.defaultCurveId;
         uint256 atomCost = _getAtomCost();
 
@@ -1143,11 +1143,7 @@ contract MultiVault is
         bytes32 termId,
         uint256 curveId,
         uint256 assets // assets before any fees
-    )
-        internal
-        view
-        returns (uint256, uint256, uint256)
-    {
+    ) internal view returns (uint256, uint256, uint256) {
         uint256 assetsAfterFees;
         uint256 assetsAfterMinSharesCost = assets;
 
@@ -1167,13 +1163,12 @@ contract MultiVault is
         // If it's an initial deposit into a non-default curve vault, we calculate user's shares as if minShare was
         // already minted
         uint256 shares = _isNewVault(termId, curveId)
-            ? IBondingCurveRegistry(bondingCurveConfig.registry)
-                .previewDeposit(
-                    assetsAfterFees,
-                    _minAssetsForCurve(curveId, generalConfig.minShare),
-                    generalConfig.minShare,
-                    curveId
-                )
+            ? IBondingCurveRegistry(bondingCurveConfig.registry).previewDeposit(
+                assetsAfterFees,
+                _minAssetsForCurve(curveId, generalConfig.minShare),
+                generalConfig.minShare,
+                curveId
+            )
             : _convertToShares(termId, curveId, assetsAfterFees);
         return (shares, assetsAfterMinSharesCost, assetsAfterFees);
     }
@@ -1215,11 +1210,7 @@ contract MultiVault is
         bytes32 termId,
         uint256 curveId,
         uint256 assets // assets before any fees
-    )
-        internal
-        view
-        returns (uint256, uint256, uint256)
-    {
+    ) internal view returns (uint256, uint256, uint256) {
         uint256 assetsAfterFees;
         uint256 assetsAfterMinSharesCost = assets;
 
@@ -1245,13 +1236,12 @@ contract MultiVault is
         // If it's an initial deposit into a non-default curve vault, we calculate user's shares as if minShare was
         // already minted
         uint256 shares = _isNewVault(termId, curveId)
-            ? IBondingCurveRegistry(bondingCurveConfig.registry)
-                .previewDeposit(
-                    assetsAfterFees,
-                    _minAssetsForCurve(curveId, generalConfig.minShare),
-                    generalConfig.minShare,
-                    curveId
-                )
+            ? IBondingCurveRegistry(bondingCurveConfig.registry).previewDeposit(
+                assetsAfterFees,
+                _minAssetsForCurve(curveId, generalConfig.minShare),
+                generalConfig.minShare,
+                curveId
+            )
             : _convertToShares(termId, curveId, assetsAfterFees);
         return (shares, assetsAfterMinSharesCost, assetsAfterFees);
     }
@@ -1266,11 +1256,7 @@ contract MultiVault is
         bytes32 _termId,
         uint256 _curveId,
         uint256 _shares
-    )
-        internal
-        view
-        returns (uint256, uint256)
-    {
+    ) internal view returns (uint256, uint256) {
         uint256 assets = _convertToAssets(_termId, _curveId, _shares);
 
         uint256 protocolFee = _feeOnRaw(assets, vaultFees.protocolFee);
@@ -1394,9 +1380,13 @@ contract MultiVault is
     /// @return the number of shares that would be received
     function _convertToShares(bytes32 termId, uint256 curveId, uint256 assets) internal view returns (uint256) {
         IBondingCurveRegistry bcRegistry = IBondingCurveRegistry(bondingCurveConfig.registry);
-        return bcRegistry.previewDeposit(
-            assets, _vaults[termId][curveId].totalAssets, _vaults[termId][curveId].totalShares, curveId
-        );
+        return
+            bcRegistry.previewDeposit(
+                assets,
+                _vaults[termId][curveId].totalAssets,
+                _vaults[termId][curveId].totalShares,
+                curveId
+            );
     }
 
     /// @dev calculates the amount of assets that would be received for a given share redemption from a vault of a given
@@ -1407,9 +1397,13 @@ contract MultiVault is
     /// @return the amount of assets that would be received
     function _convertToAssets(bytes32 termId, uint256 curveId, uint256 shares) internal view returns (uint256) {
         IBondingCurveRegistry bcRegistry = IBondingCurveRegistry(bondingCurveConfig.registry);
-        return bcRegistry.previewRedeem(
-            shares, _vaults[termId][curveId].totalShares, _vaults[termId][curveId].totalAssets, curveId
-        );
+        return
+            bcRegistry.previewRedeem(
+                shares,
+                _vaults[termId][curveId].totalShares,
+                _vaults[termId][curveId].totalAssets,
+                curveId
+            );
     }
 
     /// @dev Initializes the counter triple vault with min shares minted to the burn address
@@ -1575,10 +1569,7 @@ contract MultiVault is
         uint256 assets,
         uint256 shares,
         VaultType vaultType
-    )
-        internal
-        returns (uint256)
-    {
+    ) internal returns (uint256) {
         uint256 minShare = generalConfig.minShare;
         VaultState storage vaultState = _vaults[termId][curveId];
 
@@ -1613,10 +1604,7 @@ contract MultiVault is
         uint256 assets,
         uint256 shares,
         VaultType _vaultType
-    )
-        internal
-        returns (uint256)
-    {
+    ) internal returns (uint256) {
         _setVaultTotals(
             termId,
             curveId,
@@ -1643,10 +1631,7 @@ contract MultiVault is
         uint256 assets,
         uint256 shares,
         VaultType vaultType
-    )
-        internal
-        returns (uint256)
-    {
+    ) internal returns (uint256) {
         VaultState storage vaultState = _vaults[termId][curveId];
 
         _setVaultTotals(termId, curveId, vaultState.totalAssets - assets, vaultState.totalShares - shares, vaultType);
@@ -1666,9 +1651,7 @@ contract MultiVault is
         uint256 totalAssets,
         uint256 totalShares,
         VaultType vaultType
-    )
-        internal
-    {
+    ) internal {
         IBondingCurveRegistry registry = IBondingCurveRegistry(bondingCurveConfig.registry);
 
         uint256 maxAssets = registry.getCurveMaxAssets(curveId);
@@ -1702,7 +1685,7 @@ contract MultiVault is
         if (length == 0 || length > MAX_BATCH_SIZE) {
             revert MultiVault_InvalidArrayLength();
         }
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ) {
             total += assets[i];
             unchecked {
                 ++i;
@@ -1724,10 +1707,7 @@ contract MultiVault is
         uint256 assetsAfterMinSharesCost,
         uint256 assetsAfterFees,
         uint256 minSharesForReceiver
-    )
-        internal
-        view
-    {
+    ) internal view {
         IBondingCurveRegistry registry = IBondingCurveRegistry(bondingCurveConfig.registry);
 
         // Prevent zero share deposits
@@ -1741,8 +1721,9 @@ contract MultiVault is
         if (projectedAssets > registry.getCurveMaxAssets(curveId)) revert MultiVault_ActionExceedsMaxAssets();
 
         // Check the incoming shares will not exceed max shares for the curve
-        uint256 projectedShares =
-            _vaults[termId][curveId].totalShares + sharesForReceiver + (isNew ? generalConfig.minShare : 0);
+        uint256 projectedShares = _vaults[termId][curveId].totalShares +
+            sharesForReceiver +
+            (isNew ? generalConfig.minShare : 0);
         if (projectedShares > registry.getCurveMaxShares(curveId)) revert MultiVault_ActionExceedsMaxShares();
 
         // Ensure the deposit converts to at least minSharesForReceiver shares
@@ -1763,10 +1744,7 @@ contract MultiVault is
         address _account,
         uint256 _shares,
         uint256 _minAssets
-    )
-        internal
-        view
-    {
+    ) internal view {
         if (_shares == 0) {
             revert MultiVault_DepositOrRedeemZeroShares();
         }
@@ -1780,7 +1758,7 @@ contract MultiVault is
             revert MultiVault_InsufficientRemainingSharesInVault(remainingShares);
         }
 
-        (uint256 expectedAssets,) = _calculateRedeem(_termId, _curveId, _shares);
+        (uint256 expectedAssets, ) = _calculateRedeem(_termId, _curveId, _shares);
 
         if (expectedAssets < _minAssets) {
             revert MultiVault_SlippageExceeded();
@@ -1850,11 +1828,7 @@ contract MultiVault is
         bytes32 termId,
         uint256 curveId,
         uint256 sharesToRedeem
-    )
-        internal
-        view
-        returns (bool)
-    {
+    ) internal view returns (bool) {
         uint256 defaultCurveId = bondingCurveConfig.defaultCurveId;
         uint256 totalShares = _vaults[termId][defaultCurveId].totalShares;
         uint256 remainingSharesInDefaultVault;

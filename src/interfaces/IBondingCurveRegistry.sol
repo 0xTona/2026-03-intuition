@@ -33,10 +33,7 @@ interface IBondingCurveRegistry {
         uint256 totalAssets,
         uint256 totalShares,
         uint256 id
-    )
-        external
-        view
-        returns (uint256 shares);
+    ) external view returns (uint256 shares);
 
     /// @notice Preview how many assets would be returned for burning a specific amount of shares
     /// @param shares Quantity of shares to burn
@@ -49,10 +46,7 @@ interface IBondingCurveRegistry {
         uint256 totalShares,
         uint256 totalAssets,
         uint256 id
-    )
-        external
-        view
-        returns (uint256 assets);
+    ) external view returns (uint256 assets);
 
     /// @notice Preview how many shares would be redeemed for a withdrawal of assets
     /// @param assets Quantity of assets to withdraw
@@ -65,10 +59,7 @@ interface IBondingCurveRegistry {
         uint256 totalAssets,
         uint256 totalShares,
         uint256 id
-    )
-        external
-        view
-        returns (uint256 shares);
+    ) external view returns (uint256 shares);
 
     /// @notice Preview how many assets would be required to mint a specific amount of shares
     /// @param shares Quantity of shares to mint
@@ -81,10 +72,7 @@ interface IBondingCurveRegistry {
         uint256 totalShares,
         uint256 totalAssets,
         uint256 id
-    )
-        external
-        view
-        returns (uint256 assets);
+    ) external view returns (uint256 assets);
 
     /// @notice Convert assets to shares at a specific point on the curve
     /// @param assets Quantity of assets to convert to shares
@@ -97,10 +85,7 @@ interface IBondingCurveRegistry {
         uint256 totalAssets,
         uint256 totalShares,
         uint256 id
-    )
-        external
-        view
-        returns (uint256 shares);
+    ) external view returns (uint256 shares);
 
     /// @notice Convert shares to assets at a specific point on the curve
     /// @param shares Quantity of shares to convert to assets
@@ -113,10 +98,7 @@ interface IBondingCurveRegistry {
         uint256 totalShares,
         uint256 totalAssets,
         uint256 id
-    )
-        external
-        view
-        returns (uint256 assets);
+    ) external view returns (uint256 assets);
 
     /// @notice Get the current price of a share
     /// @param id Curve ID to use for the calculation
@@ -127,10 +109,7 @@ interface IBondingCurveRegistry {
         uint256 id,
         uint256 totalShares,
         uint256 totalAssets
-    )
-        external
-        view
-        returns (uint256 sharePrice);
+    ) external view returns (uint256 sharePrice);
 
     /// @notice Get the name of a curve
     /// @param id Curve ID to query

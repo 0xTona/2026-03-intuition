@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { Test, console } from "forge-std/src/Test.sol";
-import { BeaconProxy } from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
-import { IEntryPoint } from "@account-abstraction/interfaces/IEntryPoint.sol";
-import { PackedUserOperation } from "@account-abstraction/interfaces/PackedUserOperation.sol";
-import { SIG_VALIDATION_FAILED, _packValidationData } from "@account-abstraction/core/Helpers.sol";
-import {
-    Ownable2StepUpgradeable,
-    OwnableUpgradeable
-} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {Test, console} from "forge-std/src/Test.sol";
+import {BeaconProxy} from "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol";
+import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
+import {PackedUserOperation} from "@account-abstraction/interfaces/PackedUserOperation.sol";
+import {SIG_VALIDATION_FAILED, _packValidationData} from "@account-abstraction/core/Helpers.sol";
+import {Ownable2StepUpgradeable, OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import { AtomWallet } from "src/protocol/wallet/AtomWallet.sol";
-import { AtomWalletFactory } from "src/protocol/wallet/AtomWalletFactory.sol";
-import { IAtomWalletFactory } from "src/interfaces/IAtomWalletFactory.sol";
-import { BaseTest } from "tests/BaseTest.t.sol";
+import {AtomWallet} from "src/protocol/wallet/AtomWallet.sol";
+import {AtomWalletFactory} from "src/protocol/wallet/AtomWalletFactory.sol";
+import {IAtomWalletFactory} from "src/interfaces/IAtomWalletFactory.sol";
+import {BaseTest} from "tests/BaseTest.t.sol";
 
 contract MockEntryPoint {
     mapping(address account => uint256 balance) public balanceOf;
@@ -84,7 +81,7 @@ contract AtomWalletTest is BaseTest {
         atomDataArray[0] = atomData;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = atomCost;
-        protocol.multiVault.createAtoms{ value: atomCost }(atomDataArray, amounts);
+        protocol.multiVault.createAtoms{value: atomCost}(atomDataArray, amounts);
         vm.stopPrank();
 
         // Deploy atom wallet through factory
@@ -103,8 +100,11 @@ contract AtomWalletTest is BaseTest {
         // Use TransparentUpgradeableProxy to simulate upgradeable proxy behavior
         // and avoid the invalid initialization error
         AtomWallet freshWallet = new AtomWallet();
-        TransparentUpgradeableProxy atomWalletProxy =
-            new TransparentUpgradeableProxy(address(freshWallet), users.admin, "");
+        TransparentUpgradeableProxy atomWalletProxy = new TransparentUpgradeableProxy(
+            address(freshWallet),
+            users.admin,
+            ""
+        );
         freshWallet = AtomWallet(payable(address(atomWalletProxy)));
 
         freshWallet.initialize(address(mockEntryPoint), address(protocol.multiVault), TEST_ATOM_ID);
@@ -118,8 +118,11 @@ contract AtomWalletTest is BaseTest {
 
     function test_initialize_revertsOnZeroEntryPoint() public {
         AtomWallet freshWallet = new AtomWallet();
-        TransparentUpgradeableProxy atomWalletProxy =
-            new TransparentUpgradeableProxy(address(freshWallet), users.admin, "");
+        TransparentUpgradeableProxy atomWalletProxy = new TransparentUpgradeableProxy(
+            address(freshWallet),
+            users.admin,
+            ""
+        );
         freshWallet = AtomWallet(payable(address(atomWalletProxy)));
 
         vm.expectRevert(abi.encodeWithSelector(AtomWallet.AtomWallet_ZeroAddress.selector));
@@ -128,8 +131,11 @@ contract AtomWalletTest is BaseTest {
 
     function test_initialize_revertsOnZeroMultiVault() public {
         AtomWallet freshWallet = new AtomWallet();
-        TransparentUpgradeableProxy atomWalletProxy =
-            new TransparentUpgradeableProxy(address(freshWallet), users.admin, "");
+        TransparentUpgradeableProxy atomWalletProxy = new TransparentUpgradeableProxy(
+            address(freshWallet),
+            users.admin,
+            ""
+        );
         freshWallet = AtomWallet(payable(address(atomWalletProxy)));
 
         vm.expectRevert(abi.encodeWithSelector(AtomWallet.AtomWallet_ZeroAddress.selector));
@@ -138,8 +144,11 @@ contract AtomWalletTest is BaseTest {
 
     function test_initialize_revertsOnDoubleInitialization() public {
         AtomWallet freshWallet = new AtomWallet();
-        TransparentUpgradeableProxy atomWalletProxy =
-            new TransparentUpgradeableProxy(address(freshWallet), users.admin, "");
+        TransparentUpgradeableProxy atomWalletProxy = new TransparentUpgradeableProxy(
+            address(freshWallet),
+            users.admin,
+            ""
+        );
         freshWallet = AtomWallet(payable(address(atomWalletProxy)));
 
         freshWallet.initialize(address(mockEntryPoint), address(protocol.multiVault), TEST_ATOM_ID);
@@ -165,7 +174,7 @@ contract AtomWalletTest is BaseTest {
 
         vm.deal(users.alice, TEST_AMOUNT);
         vm.prank(users.alice);
-        (bool success,) = address(atomWallet).call{ value: TEST_AMOUNT }("");
+        (bool success, ) = address(atomWallet).call{value: TEST_AMOUNT}("");
 
         assertTrue(success);
         assertEq(address(atomWallet).balance, balanceBefore + TEST_AMOUNT);
@@ -322,14 +331,14 @@ contract AtomWalletTest is BaseTest {
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT);
 
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
         assertEq(atomWallet.getDeposit(), TEST_DEPOSIT_AMOUNT);
     }
 
     function test_addDeposit_handlesZeroValue() public {
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: 0 }();
+        atomWallet.addDeposit{value: 0}();
 
         assertEq(atomWallet.getDeposit(), 0);
     }
@@ -338,9 +347,9 @@ contract AtomWalletTest is BaseTest {
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT * 2);
 
         vm.startPrank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
         vm.stopPrank();
 
         assertEq(atomWallet.getDeposit(), TEST_DEPOSIT_AMOUNT * 2);
@@ -354,7 +363,7 @@ contract AtomWalletTest is BaseTest {
         // First add a deposit
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT);
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
         uint256 balanceBefore = WITHDRAW_ADDRESS.balance;
 
@@ -369,7 +378,7 @@ contract AtomWalletTest is BaseTest {
         // First add a deposit
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT);
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
         uint256 balanceBefore = WITHDRAW_ADDRESS.balance;
 
@@ -384,7 +393,7 @@ contract AtomWalletTest is BaseTest {
         // First add a deposit
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT);
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
         vm.prank(UNAUTHORIZED_USER);
         vm.expectRevert(AtomWallet.AtomWallet_OnlyOwner.selector);
@@ -395,7 +404,7 @@ contract AtomWalletTest is BaseTest {
         // First add a deposit
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT);
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
         uint256 balanceBefore = WITHDRAW_ADDRESS.balance;
 
@@ -647,7 +656,7 @@ contract AtomWalletTest is BaseTest {
         atomDataArray[0] = atomData;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = atomCost;
-        protocol.multiVault.createAtoms{ value: atomCost }(atomDataArray, amounts);
+        protocol.multiVault.createAtoms{value: atomCost}(atomDataArray, amounts);
         vm.stopPrank();
 
         address deployedWallet = protocol.atomWalletFactory.deployAtomWallet(atomId);
@@ -688,8 +697,10 @@ contract AtomWalletTest is BaseTest {
         amounts[0] = atomCost;
         amounts[1] = atomCost;
         amounts[2] = atomCost;
-        bytes32[] memory atomIds =
-            protocol.multiVault.createAtoms{ value: calculateTotalCost(amounts) }(atomDataArray, amounts);
+        bytes32[] memory atomIds = protocol.multiVault.createAtoms{value: calculateTotalCost(amounts)}(
+            atomDataArray,
+            amounts
+        );
         bytes32 subjectId = atomIds[0];
         bytes32 predicateId = atomIds[1];
         bytes32 objectId = atomIds[2];
@@ -703,8 +714,11 @@ contract AtomWalletTest is BaseTest {
         objectIds[0] = objectId;
         uint256[] memory tripleaAmounts = new uint256[](1);
         tripleaAmounts[0] = tripleCost;
-        bytes32 tripleId = protocol.multiVault.createTriples{ value: tripleCost }(
-            subjectIds, predicateIds, objectIds, tripleaAmounts
+        bytes32 tripleId = protocol.multiVault.createTriples{value: tripleCost}(
+            subjectIds,
+            predicateIds,
+            objectIds,
+            tripleaAmounts
         )[0];
         vm.stopPrank();
 
@@ -724,7 +738,7 @@ contract AtomWalletTest is BaseTest {
         atomDataArray[0] = atomData;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = atomCost;
-        protocol.multiVault.createAtoms{ value: atomCost }(atomDataArray, amounts);
+        protocol.multiVault.createAtoms{value: atomCost}(atomDataArray, amounts);
         vm.stopPrank();
 
         vm.expectEmit(true, true, true, false);
@@ -798,7 +812,7 @@ contract AtomWalletTest is BaseTest {
         // Add deposit
         vm.deal(users.alice, TEST_DEPOSIT_AMOUNT);
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: TEST_DEPOSIT_AMOUNT }();
+        atomWallet.addDeposit{value: TEST_DEPOSIT_AMOUNT}();
 
         assertEq(atomWallet.getDeposit(), TEST_DEPOSIT_AMOUNT);
 
@@ -823,7 +837,7 @@ contract AtomWalletTest is BaseTest {
         atomDataArray[0] = atomData;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = atomCost;
-        protocol.multiVault.createAtoms{ value: atomCost }(atomDataArray, amounts);
+        protocol.multiVault.createAtoms{value: atomCost}(atomDataArray, amounts);
         vm.stopPrank();
 
         // Deploy wallet
@@ -865,7 +879,7 @@ contract AtomWalletTest is BaseTest {
 
         vm.deal(users.alice, amount);
         vm.prank(users.alice);
-        atomWallet.addDeposit{ value: amount }();
+        atomWallet.addDeposit{value: amount}();
 
         assertEq(atomWallet.getDeposit(), amount);
     }
@@ -909,9 +923,7 @@ contract AtomWalletTest is BaseTest {
     function testFuzz_validateSignature_validOwner_withoutTimeWindow(
         uint256 ownerPrivateKey,
         bytes32 userOpHashSeed
-    )
-        external
-    {
+    ) external {
         ownerPrivateKey = bound(ownerPrivateKey, 1, SECP256K1_CURVE_ORDER - 1);
         address expectedOwner = vm.addr(ownerPrivateKey);
 
@@ -933,9 +945,7 @@ contract AtomWalletTest is BaseTest {
         uint48 validUntil,
         uint48 validAfter,
         bytes32 userOpHashSeed
-    )
-        external
-    {
+    ) external {
         ownerPrivateKey = bound(ownerPrivateKey, 1, SECP256K1_CURVE_ORDER - 1);
         address expectedOwner = vm.addr(ownerPrivateKey);
 
@@ -985,20 +995,25 @@ contract AtomWalletTest is BaseTest {
     //////////////////////////////////////////////////////////////*/
 
     function _createValidUserOp() internal view returns (PackedUserOperation memory) {
-        bytes memory callData =
-            abi.encodeWithSelector(atomWallet.execute.selector, CALL_TARGET, TEST_AMOUNT, TEST_CALLDATA);
+        bytes memory callData = abi.encodeWithSelector(
+            atomWallet.execute.selector,
+            CALL_TARGET,
+            TEST_AMOUNT,
+            TEST_CALLDATA
+        );
 
-        return PackedUserOperation({
-            sender: address(atomWallet),
-            nonce: 0,
-            initCode: "",
-            callData: callData,
-            accountGasLimits: bytes32(uint256(1_000_000) << 128 | 1_000_000),
-            preVerificationGas: 21_000,
-            gasFees: bytes32(uint256(1_000_000_000) << 128 | 1_000_000_000),
-            paymasterAndData: "",
-            signature: ""
-        });
+        return
+            PackedUserOperation({
+                sender: address(atomWallet),
+                nonce: 0,
+                initCode: "",
+                callData: callData,
+                accountGasLimits: bytes32((uint256(1_000_000) << 128) | 1_000_000),
+                preVerificationGas: 21_000,
+                gasFees: bytes32((uint256(1_000_000_000) << 128) | 1_000_000_000),
+                paymasterAndData: "",
+                signature: ""
+            });
     }
 
     function _signUserOpHash(uint256 signerPrivateKey, bytes32 userOpHash) internal returns (bytes memory) {
@@ -1012,18 +1027,18 @@ contract AtomWalletTest is BaseTest {
         bytes32 userOpHash,
         uint48 validUntil,
         uint48 validAfter
-    )
-        internal
-        returns (bytes memory)
-    {
+    ) internal returns (bytes memory) {
         bytes memory rawSignature = _signUserOpHash(signerPrivateKey, userOpHash);
         return abi.encodePacked(rawSignature, validUntil, validAfter);
     }
 
     function _createWalletOwnedBy(address owner) internal returns (AtomWallet) {
         AtomWallet freshWallet = new AtomWallet();
-        TransparentUpgradeableProxy atomWalletProxy =
-            new TransparentUpgradeableProxy(address(freshWallet), users.admin, "");
+        TransparentUpgradeableProxy atomWalletProxy = new TransparentUpgradeableProxy(
+            address(freshWallet),
+            users.admin,
+            ""
+        );
         freshWallet = AtomWallet(payable(address(atomWalletProxy)));
 
         // Mock the multiVault to return the desired owner as address(ATOM_WARDEN)

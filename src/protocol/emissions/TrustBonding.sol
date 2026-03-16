@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { PausableUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/PausableUpgradeable.sol";
 
-import { ICoreEmissionsController } from "src/interfaces/ICoreEmissionsController.sol";
-import { IMultiVault } from "src/interfaces/IMultiVault.sol";
-import { ITrustBonding, UserInfo } from "src/interfaces/ITrustBonding.sol";
-import { ISatelliteEmissionsController } from "src/interfaces/ISatelliteEmissionsController.sol";
+import {ICoreEmissionsController} from "src/interfaces/ICoreEmissionsController.sol";
+import {IMultiVault} from "src/interfaces/IMultiVault.sol";
+import {ITrustBonding, UserInfo} from "src/interfaces/ITrustBonding.sol";
+import {ISatelliteEmissionsController} from "src/interfaces/ISatelliteEmissionsController.sol";
 
-import { VotingEscrow, LockedBalance } from "src/external/curve/VotingEscrow.sol";
+import {VotingEscrow, LockedBalance} from "src/external/curve/VotingEscrow.sol";
+
+import {console2 as console} from "forge-std/src/console2.sol";
 
 /**
  * @title  TrustBonding
@@ -121,10 +123,7 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
         address _satelliteEmissionsController,
         uint256 _systemUtilizationLowerBound,
         uint256 _personalUtilizationLowerBound
-    )
-        external
-        initializer
-    {
+    ) external initializer {
         if (_owner == address(0)) {
             revert TrustBonding_ZeroAddress();
         }
@@ -243,14 +242,15 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
         }
 
         LockedBalance memory userLocked = locked[account];
-        return UserInfo({
-            personalUtilization: personalUtilization,
-            eligibleRewards: (userRewards * personalUtilization) / BASIS_POINTS_DIVISOR,
-            maxRewards: userRewards,
-            lockedAmount: userLocked.amount >= 0 ? uint256(uint128(userLocked.amount)) : 0,
-            lockEnd: userLocked.end,
-            bondedBalance: _balanceOf(account, block.timestamp)
-        });
+        return
+            UserInfo({
+                personalUtilization: personalUtilization,
+                eligibleRewards: (userRewards * personalUtilization) / BASIS_POINTS_DIVISOR,
+                maxRewards: userRewards,
+                lockedAmount: userLocked.amount >= 0 ? uint256(uint128(userLocked.amount)) : 0,
+                lockEnd: userLocked.end,
+                bondedBalance: _balanceOf(account, block.timestamp)
+            });
     }
 
     /// @inheritdoc ITrustBonding
@@ -280,8 +280,8 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
 
         uint256 prevEpoch = _currEpoch - 1;
         uint256 userClaimedReward = userClaimedRewardsForEpoch[account][prevEpoch];
-        uint256 userEligibleReward = _userEligibleRewardsForEpoch(account, prevEpoch)
-            * _getPersonalUtilizationRatio(account, prevEpoch) / BASIS_POINTS_DIVISOR;
+        uint256 userEligibleReward = (_userEligibleRewardsForEpoch(account, prevEpoch) *
+            _getPersonalUtilizationRatio(account, prevEpoch)) / BASIS_POINTS_DIVISOR;
 
         if (userEligibleReward <= userClaimedReward) {
             return 0;
@@ -368,7 +368,7 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
 
         // Apply the personal utilization ratio to the raw rewards
         uint256 personalUtilizationRatio = _getPersonalUtilizationRatio(msg.sender, prevEpoch);
-        uint256 userRewards = rawUserRewards * personalUtilizationRatio / BASIS_POINTS_DIVISOR;
+        uint256 userRewards = (rawUserRewards * personalUtilizationRatio) / BASIS_POINTS_DIVISOR;
 
         // Check if the user has any rewards to claim after applying the personal utilization ratio.
         // This check is here mostly to prevent claiming 0 rewards in case the lower bound for the
@@ -463,7 +463,7 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
         }
 
         uint256 systemUtilizationRatio = _getSystemUtilizationRatio(epoch);
-        uint256 epochEmissions = maxEpochEmissions * systemUtilizationRatio / BASIS_POINTS_DIVISOR;
+        uint256 epochEmissions = (maxEpochEmissions * systemUtilizationRatio) / BASIS_POINTS_DIVISOR;
 
         return epochEmissions;
     }
@@ -488,10 +488,26 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
             return 0;
         }
 
-        return userBalance * _emissionsForEpoch(epoch) / totalBalance;
+        return (userBalance * _emissionsForEpoch(epoch)) / totalBalance;
     }
 
     function _getPersonalUtilizationRatio(address _account, uint256 _epoch) internal view returns (uint256) {
+        //@note
+        //Intention
+        //  1) Validate inputs
+        //      1.1) revert on zero address
+        //      1.2) return 0 if epoch is in the future
+        //  2) epochs 0 and 1                                         -> return 100%
+        //  3) rawUtilizationDelta = after - before
+        //      if delta <= 0                                         -> return personalUtilizationLowerBound
+        //      if target == 0
+        //          user had no rewards last epoch (first-ever claim) -> return 100%
+        //          user didn't claim rewards                         -> return personalUtilizationLowerBound (*)
+        //      if userUtilizationDelta >= target                     -> return 100%
+        //      else                                                  -> return lowerBound + (delta * ratioRange) / target
+        //Audit
+        // (*) There's a bug here
+
         if (_account == address(0)) {
             revert TrustBonding_ZeroAddress();
         }
@@ -511,7 +527,9 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
 
         // Since rawUtilizationDelta is signed, we only do a sign check, as the explicit underflow check is not needed
         int256 rawUtilizationDelta = userUtilizationAfter - userUtilizationBefore;
-
+        console.log("User utilization before: %s", userUtilizationBefore);
+        console.log("User utilization after: %s", userUtilizationAfter);
+        console.log("User utilization delta: %s", rawUtilizationDelta);
         // If the utilizationDelta is negative or zero, we return the minimum personal utilization ratio
         if (rawUtilizationDelta <= 0) {
             return personalUtilizationLowerBound;
@@ -595,11 +613,7 @@ contract TrustBonding is ITrustBonding, PausableUpgradeable, VotingEscrow {
         uint256 delta,
         uint256 target,
         uint256 lowerBound
-    )
-        internal
-        pure
-        returns (uint256)
-    {
+    ) internal pure returns (uint256) {
         uint256 ratioRange = BASIS_POINTS_DIVISOR - lowerBound;
         uint256 utilizationRatio = lowerBound + (delta * ratioRange) / target;
         return utilizationRatio;

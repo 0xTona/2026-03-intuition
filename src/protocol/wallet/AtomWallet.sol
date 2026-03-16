@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { BaseAccount } from "@account-abstraction/core/BaseAccount.sol";
-import { PackedUserOperation } from "@account-abstraction/interfaces/PackedUserOperation.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { IEntryPoint } from "@account-abstraction/interfaces/IEntryPoint.sol";
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {BaseAccount} from "@account-abstraction/core/BaseAccount.sol";
+import {PackedUserOperation} from "@account-abstraction/interfaces/PackedUserOperation.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {IEntryPoint} from "@account-abstraction/interfaces/IEntryPoint.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import { IMultiVault } from "src/interfaces/IMultiVault.sol";
+import {IMultiVault} from "src/interfaces/IMultiVault.sol";
 
 // For SIG_VALIDATION_FAILED
 import "@account-abstraction/core/Helpers.sol";
@@ -126,7 +126,7 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
     /* =================================================== */
 
     /// @notice Receive function to accept native TRUST transfers
-    receive() external payable { }
+    receive() external payable {}
 
     /* =================================================== */
     /*                MUTATIVE FUNCTIONS                   */
@@ -142,12 +142,7 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
         address dest,
         uint256 value,
         bytes calldata data
-    )
-        external
-        override
-        onlyOwnerOrEntryPoint
-        nonReentrant
-    {
+    ) external override onlyOwnerOrEntryPoint nonReentrant {
         _call(dest, value, data);
     }
 
@@ -161,19 +156,14 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
         address[] calldata dest,
         uint256[] calldata values,
         bytes[] calldata data
-    )
-        external
-        payable
-        onlyOwnerOrEntryPoint
-        nonReentrant
-    {
+    ) external payable onlyOwnerOrEntryPoint nonReentrant {
         uint256 length = dest.length;
 
         if (length != values.length || values.length != data.length) {
             revert AtomWallet_WrongArrayLengths();
         }
 
-        for (uint256 i = 0; i < length;) {
+        for (uint256 i = 0; i < length; ) {
             _call(dest[i], values[i], data[i]);
             unchecked {
                 ++i;
@@ -183,7 +173,7 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
 
     /// @notice Add deposit to the account in the entry point contract
     function addDeposit() external payable {
-        entryPoint().depositTo{ value: msg.value }(address(this));
+        entryPoint().depositTo{value: msg.value}(address(this));
     }
 
     /**
@@ -285,19 +275,33 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
     function _validateSignature(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash
-    )
-        internal
-        virtual
-        override
-        returns (uint256 validationData)
-    {
-        (uint48 validUntil, uint48 validAfter, bytes memory signature) =
-            _extractValidUntilAndValidAfterFromSignature(userOp.signature);
+    ) internal virtual override returns (uint256 validationData) {
+        //@note
+        //Intention
+        //  1) Unpack signature into (validUntil, validAfter, rawSignature)
+        //  2) Reconstruct the EIP-191 personal-sign digest from userOpHash
+        //  3) ECDSA.tryRecover the signer from (digest, rawSignature)
+        //  4) Handle malformed signatures — revert on length/S-value errors
+        //      4.1) InvalidSignatureLength  -> revert with byte-length errorArg
+        //      4.2) InvalidSignatureS       -> revert with bad S errorArg
+        //      4.3) InvalidSignature (bad v) -> return sigFailed=true, preserving time window
+        //  5) Compare recovered signer to owner()
+        //      5.1) sigFailed = true  -> sig invalid, ERC-4337 rejects the UserOp
+        //      5.2) sigFailed = false -> sig valid, EntryPoint proceeds
+        //  6) Pack (sigFailed, validUntil, validAfter) into ERC-4337 validationData word
 
+        //1
+        (uint48 validUntil, uint48 validAfter, bytes memory signature) = _extractValidUntilAndValidAfterFromSignature(
+            userOp.signature
+        );
+
+        //2
         bytes32 hash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", userOpHash));
 
+        //3
         (address recovered, ECDSA.RecoverError recoverError, bytes32 errorArg) = ECDSA.tryRecover(hash, signature);
 
+        //4 {
         if (recoverError == ECDSA.RecoverError.InvalidSignatureLength) {
             revert AtomWallet_InvalidSignatureLength(uint256(errorArg));
         } else if (recoverError == ECDSA.RecoverError.InvalidSignatureS) {
@@ -305,8 +309,12 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
         } else if (recoverError == ECDSA.RecoverError.InvalidSignature) {
             return _packValidationData(true, validUntil, validAfter);
         }
+        //} 4
 
+        //5
         bool sigFailed = recovered != owner();
+
+        //6
         return _packValidationData(sigFailed, validUntil, validAfter);
     }
 
@@ -317,7 +325,7 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
      * @param data the function calldata
      */
     function _call(address target, uint256 value, bytes memory data) internal {
-        (bool success, bytes memory result) = target.call{ value: value }(data);
+        (bool success, bytes memory result) = target.call{value: value}(data);
         if (!success) {
             assembly {
                 revert(add(result, 32), mload(result))
@@ -334,19 +342,32 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
      * @return validAfter the valid after timestamp
      * @return rawSignature the 65-byte ECDSA signature (r,s,v)
      */
-    function _extractValidUntilAndValidAfterFromSignature(bytes calldata signature)
-        internal
-        pure
-        returns (uint48 validUntil, uint48 validAfter, bytes memory rawSignature)
-    {
+    function _extractValidUntilAndValidAfterFromSignature(
+        bytes calldata signature
+    ) internal pure returns (uint48 validUntil, uint48 validAfter, bytes memory rawSignature) {
+        //@note
+        //Intention
+        //  1)  sigLength == 65  -> ECDSA -> return (0, 0, sig)
+        //  2)  sigLength != 77  -> revert
+        //  3)  sigLength == 77  -> ECDSA (65) + time window (12)
+        //      3.1) rawSignature = sig[:65]
+        //      3.2) validUntil = uint48(sig[65:71])
+        //      3.3) validAfter = uint48(sig[71:77])
+
         uint256 signatureLength = signature.length;
+        //1 {
         if (signatureLength == 65) {
             return (0, 0, signature);
         }
+        //} 1
+
+        //2 {
         if (signatureLength != 77) {
             revert AtomWallet_InvalidSignatureLength(signatureLength);
         }
+        //} 2
 
+        //3 {
         uint256 metaOffset = signatureLength - 12;
         rawSignature = signature[:metaOffset];
 
@@ -356,8 +377,10 @@ contract AtomWallet is Initializable, BaseAccount, Ownable2StepUpgradeable, Reen
             word := mload(add(meta, 32))
         }
         uint96 packed = uint96(word >> 160);
+
         validUntil = uint48(packed >> 48);
         validAfter = uint48(packed);
+        //} 3
     }
 
     /**

@@ -1,40 +1,33 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { console2 } from "forge-std/src/console2.sol";
-import { Test } from "forge-std/src/Test.sol";
+import {console2} from "forge-std/src/console2.sol";
+import {Test} from "forge-std/src/Test.sol";
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { TransparentUpgradeableProxy } from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 
-import { IMultiVault, ApprovalTypes } from "src/interfaces/IMultiVault.sol";
-import { MetaERC20DispatchInit, FinalityState } from "src/interfaces/IMetaLayer.sol";
-import { CoreEmissionsControllerInit } from "src/interfaces/ICoreEmissionsController.sol";
-import {
-    GeneralConfig,
-    AtomConfig,
-    TripleConfig,
-    WalletConfig,
-    VaultFees,
-    BondingCurveConfig
-} from "src/interfaces/IMultiVaultCore.sol";
+import {IMultiVault, ApprovalTypes} from "src/interfaces/IMultiVault.sol";
+import {MetaERC20DispatchInit, FinalityState} from "src/interfaces/IMetaLayer.sol";
+import {CoreEmissionsControllerInit} from "src/interfaces/ICoreEmissionsController.sol";
+import {GeneralConfig, AtomConfig, TripleConfig, WalletConfig, VaultFees, BondingCurveConfig} from "src/interfaces/IMultiVaultCore.sol";
 
-import { AtomWallet } from "src/protocol/wallet/AtomWallet.sol";
-import { AtomWalletFactory } from "src/protocol/wallet/AtomWalletFactory.sol";
-import { UpgradeableBeacon } from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
-import { SatelliteEmissionsController } from "src/protocol/emissions/SatelliteEmissionsController.sol";
-import { TrustBonding } from "src/protocol/emissions/TrustBonding.sol";
-import { BondingCurveRegistry } from "src/protocol/curves/BondingCurveRegistry.sol";
-import { LinearCurve } from "src/protocol/curves/LinearCurve.sol";
-import { OffsetProgressiveCurve } from "src/protocol/curves/OffsetProgressiveCurve.sol";
-import { ProgressiveCurve } from "src/protocol/curves/ProgressiveCurve.sol";
-import { ERC20Mock } from "tests/mocks/ERC20Mock.sol";
-import { Users } from "tests/utils/Types.sol";
-import { Trust } from "src/Trust.sol";
-import { WrappedTrust } from "src/WrappedTrust.sol";
-import { MultiVault } from "src/protocol/MultiVault.sol";
-import { MetalayerRouterMock, IIGPMock, MetaERC20HubOrSpokeMock } from "tests/mocks/MetalayerRouterMock.sol";
-import { Modifiers } from "tests/utils/Modifiers.sol";
+import {AtomWallet} from "src/protocol/wallet/AtomWallet.sol";
+import {AtomWalletFactory} from "src/protocol/wallet/AtomWalletFactory.sol";
+import {UpgradeableBeacon} from "@openzeppelin/contracts/proxy/beacon/UpgradeableBeacon.sol";
+import {SatelliteEmissionsController} from "src/protocol/emissions/SatelliteEmissionsController.sol";
+import {TrustBonding} from "src/protocol/emissions/TrustBonding.sol";
+import {BondingCurveRegistry} from "src/protocol/curves/BondingCurveRegistry.sol";
+import {LinearCurve} from "src/protocol/curves/LinearCurve.sol";
+import {OffsetProgressiveCurve} from "src/protocol/curves/OffsetProgressiveCurve.sol";
+import {ProgressiveCurve} from "src/protocol/curves/ProgressiveCurve.sol";
+import {ERC20Mock} from "tests/mocks/ERC20Mock.sol";
+import {Users} from "tests/utils/Types.sol";
+import {Trust} from "src/Trust.sol";
+import {WrappedTrust} from "src/WrappedTrust.sol";
+import {MultiVault} from "src/protocol/MultiVault.sol";
+import {MetalayerRouterMock, IIGPMock, MetaERC20HubOrSpokeMock} from "tests/mocks/MetalayerRouterMock.sol";
+import {Modifiers} from "tests/utils/Modifiers.sol";
 
 abstract contract BaseTest is Modifiers, Test {
     /*//////////////////////////////////////////////////////////////////////////
@@ -162,14 +155,14 @@ abstract contract BaseTest is Modifiers, Test {
     }
 
     function approveContract(IERC20 token_, address from, address spender) internal {
-        resetPrank({ msgSender: from });
-        (bool success,) = address(token_).call(abi.encodeCall(IERC20.approve, (spender, MAX_UINT256)));
+        resetPrank({msgSender: from});
+        (bool success, ) = address(token_).call(abi.encodeCall(IERC20.approve, (spender, MAX_UINT256)));
         success;
     }
 
     function createUser(string memory name) internal returns (address payable) {
         address payable user = payable(makeAddr(name));
-        vm.deal({ account: user, newBalance: 10_000 ether });
+        vm.deal({account: user, newBalance: 10_000 ether});
         return user;
     }
 
@@ -227,9 +220,14 @@ abstract contract BaseTest is Modifiers, Test {
         SatelliteEmissionsController satelliteEmissionsControllerImpl = new SatelliteEmissionsController();
         console2.log("SatelliteEmissionsController Implementation", address(satelliteEmissionsControllerImpl));
 
-        satelliteEmissionsControllerProxy =
-            new TransparentUpgradeableProxy(address(satelliteEmissionsControllerImpl), users.admin, "");
-        protocol.satelliteEmissionsController = SatelliteEmissionsController(payable(satelliteEmissionsControllerProxy));
+        satelliteEmissionsControllerProxy = new TransparentUpgradeableProxy(
+            address(satelliteEmissionsControllerImpl),
+            users.admin,
+            ""
+        );
+        protocol.satelliteEmissionsController = SatelliteEmissionsController(
+            payable(satelliteEmissionsControllerProxy)
+        );
         console2.log("SatelliteEmissionsController Proxy", address(satelliteEmissionsControllerProxy));
 
         // Deploy BondingCurveRegistry implementation and proxy
@@ -308,42 +306,42 @@ abstract contract BaseTest is Modifiers, Test {
         MetalayerRouterMock metaERC20Router = new MetalayerRouterMock(address(IIGP));
         MetaERC20HubOrSpokeMock metaERC20HubOrSpoke = new MetaERC20HubOrSpokeMock(address(metaERC20Router));
 
-        protocol.satelliteEmissionsController
-            .initialize(
-                users.admin,
-                address(1), // BaseEmissionsController placeholder
-                MetaERC20DispatchInit({
-                    hubOrSpoke: address(metaERC20HubOrSpoke),
-                    recipientDomain: 1,
-                    gasLimit: 125_000,
-                    finalityState: FinalityState.INSTANT
-                }),
-                CoreEmissionsControllerInit({
-                    startTimestamp: block.timestamp,
-                    emissionsLength: EMISSIONS_CONTROLLER_EPOCH_LENGTH,
-                    emissionsPerEpoch: EMISSIONS_CONTROLLER_EMISSIONS_PER_EPOCH,
-                    emissionsReductionCliff: EMISSIONS_CONTROLLER_CLIFF,
-                    emissionsReductionBasisPoints: EMISSIONS_CONTROLLER_REDUCTION_BP
-                })
-            );
+        protocol.satelliteEmissionsController.initialize(
+            users.admin,
+            address(1), // BaseEmissionsController placeholder
+            MetaERC20DispatchInit({
+                hubOrSpoke: address(metaERC20HubOrSpoke),
+                recipientDomain: 1,
+                gasLimit: 125_000,
+                finalityState: FinalityState.INSTANT
+            }),
+            CoreEmissionsControllerInit({
+                startTimestamp: block.timestamp,
+                emissionsLength: EMISSIONS_CONTROLLER_EPOCH_LENGTH,
+                emissionsPerEpoch: EMISSIONS_CONTROLLER_EMISSIONS_PER_EPOCH,
+                emissionsReductionCliff: EMISSIONS_CONTROLLER_CLIFF,
+                emissionsReductionBasisPoints: EMISSIONS_CONTROLLER_REDUCTION_BP
+            })
+        );
 
         protocol.satelliteEmissionsController.setTrustBonding(address(protocol.trustBonding));
-        protocol.satelliteEmissionsController
-            .grantRole(protocol.satelliteEmissionsController.CONTROLLER_ROLE(), address((trustBondingProxy)));
+        protocol.satelliteEmissionsController.grantRole(
+            protocol.satelliteEmissionsController.CONTROLLER_ROLE(),
+            address((trustBondingProxy))
+        );
 
         // Initialize AtomWalletFactory
         atomWalletFactory.initialize(address(protocol.multiVault));
 
-        protocol.trustBonding
-            .initialize(
-                users.admin, // owner
-                users.timelock, // timelock
-                address(protocol.wrappedTrust), // trustToken
-                TRUST_BONDING_EPOCH_LENGTH, // epochLength (minimum 2 weeks required)
-                address(protocol.satelliteEmissionsController), // satelliteEmissionsController
-                TRUST_BONDING_SYSTEM_UTILIZATION_LOWER_BOUND, // systemUtilizationLowerBound (50%)
-                TRUST_BONDING_PERSONAL_UTILIZATION_LOWER_BOUND // personalUtilizationLowerBound (30%)
-            );
+        protocol.trustBonding.initialize(
+            users.admin, // owner
+            users.timelock, // timelock
+            address(protocol.wrappedTrust), // trustToken
+            TRUST_BONDING_EPOCH_LENGTH, // epochLength (minimum 2 weeks required)
+            address(protocol.satelliteEmissionsController), // satelliteEmissionsController
+            TRUST_BONDING_SYSTEM_UTILIZATION_LOWER_BOUND, // systemUtilizationLowerBound (50%)
+            TRUST_BONDING_PERSONAL_UTILIZATION_LOWER_BOUND // personalUtilizationLowerBound (30%)
+        );
 
         // Prepare configuration structs with deployed addresses
         GeneralConfig memory generalConfig = _getDefaultGeneralConfig();
@@ -361,15 +359,14 @@ abstract contract BaseTest is Modifiers, Test {
         bondingCurveConfig.registry = address(protocol.curveRegistry);
 
         // Initialize MultiVault
-        protocol.multiVault
-            .initialize(
-                generalConfig,
-                _getDefaultAtomConfig(),
-                _getDefaultTripleConfig(),
-                walletConfig,
-                _getDefaultVaultFees(),
-                bondingCurveConfig
-            );
+        protocol.multiVault.initialize(
+            generalConfig,
+            _getDefaultAtomConfig(),
+            _getDefaultTripleConfig(),
+            walletConfig,
+            _getDefaultVaultFees(),
+            bondingCurveConfig
+        );
 
         resetPrank(users.timelock);
         protocol.trustBonding.setMultiVault(address(protocol.multiVault));
@@ -388,70 +385,72 @@ abstract contract BaseTest is Modifiers, Test {
         allUsers[4] = users.charlie;
 
         for (uint256 i = 0; i < allUsers.length; i++) {
-            resetPrank({ msgSender: allUsers[i] });
-            protocol.trust.approve({ spender: address(protocol.multiVault), amount: MAX_UINT256 });
-            deal({ token: address(protocol.trust), to: allUsers[i], give: 1_000_000e18 });
-            deal({ token: address(protocol.wrappedTrust), to: allUsers[i], give: 1_000_000e18 });
+            resetPrank({msgSender: allUsers[i]});
+            protocol.trust.approve({spender: address(protocol.multiVault), amount: MAX_UINT256});
+            deal({token: address(protocol.trust), to: allUsers[i], give: 1_000_000e18});
+            deal({token: address(protocol.wrappedTrust), to: allUsers[i], give: 1_000_000e18});
         }
     }
 
     function _getDefaultGeneralConfig() internal view returns (GeneralConfig memory) {
-        return GeneralConfig({
-            admin: users.admin,
-            protocolMultisig: users.admin,
-            feeDenominator: FEE_DENOMINATOR,
-            trustBonding: address(0),
-            minDeposit: MIN_DEPOSIT,
-            minShare: MIN_SHARES,
-            atomDataMaxLength: ATOM_DATA_MAX_LENGTH,
-            feeThreshold: FEE_THRESHOLD
-        });
+        return
+            GeneralConfig({
+                admin: users.admin,
+                protocolMultisig: users.admin,
+                feeDenominator: FEE_DENOMINATOR,
+                trustBonding: address(0),
+                minDeposit: MIN_DEPOSIT,
+                minShare: MIN_SHARES,
+                atomDataMaxLength: ATOM_DATA_MAX_LENGTH,
+                feeThreshold: FEE_THRESHOLD
+            });
     }
 
     function _getDefaultAtomConfig() internal returns (AtomConfig memory) {
-        return AtomConfig({
-            atomCreationProtocolFee: ATOM_CREATION_PROTOCOL_FEE, atomWalletDepositFee: ATOM_WALLET_DEPOSIT_FEE
-        });
+        return
+            AtomConfig({
+                atomCreationProtocolFee: ATOM_CREATION_PROTOCOL_FEE,
+                atomWalletDepositFee: ATOM_WALLET_DEPOSIT_FEE
+            });
     }
 
     function _getDefaultTripleConfig() internal returns (TripleConfig memory) {
-        return TripleConfig({
-            tripleCreationProtocolFee: TRIPLE_CREATION_PROTOCOL_FEE,
-            atomDepositFractionForTriple: ATOM_DEPOSIT_FRACTION_FOR_TRIPLE
-        });
+        return
+            TripleConfig({
+                tripleCreationProtocolFee: TRIPLE_CREATION_PROTOCOL_FEE,
+                atomDepositFractionForTriple: ATOM_DEPOSIT_FRACTION_FOR_TRIPLE
+            });
     }
 
     function _getDefaultWalletConfig(address _atomWalletFactory) internal returns (WalletConfig memory) {
-        return WalletConfig({
-            entryPoint: ENTRY_POINT,
-            atomWarden: ATOM_WARDEN,
-            atomWalletBeacon: address(0),
-            atomWalletFactory: address(_atomWalletFactory)
-        });
+        return
+            WalletConfig({
+                entryPoint: ENTRY_POINT,
+                atomWarden: ATOM_WARDEN,
+                atomWalletBeacon: address(0),
+                atomWalletFactory: address(_atomWalletFactory)
+            });
     }
 
     function _getDefaultVaultFees() internal view returns (VaultFees memory) {
-        return VaultFees({ entryFee: ENTRY_FEE, exitFee: EXIT_FEE, protocolFee: PROTOCOL_FEE });
+        return VaultFees({entryFee: ENTRY_FEE, exitFee: EXIT_FEE, protocolFee: PROTOCOL_FEE});
     }
 
     function _getDefaultBondingCurveConfig() internal pure returns (BondingCurveConfig memory) {
-        return BondingCurveConfig({ registry: address(0), defaultCurveId: 1 });
+        return BondingCurveConfig({registry: address(0), defaultCurveId: 1});
     }
 
     function createAtomWithDeposit(
         bytes memory atomData,
         uint256 depositAmount,
         address creator
-    )
-        internal
-        returns (bytes32)
-    {
-        resetPrank({ msgSender: creator });
+    ) internal returns (bytes32) {
+        resetPrank({msgSender: creator});
         bytes[] memory dataArray = new bytes[](1);
         dataArray[0] = atomData;
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = depositAmount;
-        bytes32[] memory atomIds = protocol.multiVault.createAtoms{ value: depositAmount }(dataArray, amounts);
+        bytes32[] memory atomIds = protocol.multiVault.createAtoms{value: depositAmount}(dataArray, amounts);
         return atomIds[0];
     }
 
@@ -459,10 +458,7 @@ abstract contract BaseTest is Modifiers, Test {
         string memory atomString,
         uint256 depositAmount,
         address creator
-    )
-        internal
-        returns (bytes32)
-    {
+    ) internal returns (bytes32) {
         bytes memory atomData = abi.encodePacked(atomString);
         return createAtomWithDeposit(atomData, depositAmount, creator);
     }
@@ -493,18 +489,15 @@ abstract contract BaseTest is Modifiers, Test {
         bytes[] memory atomDataArray,
         uint256 costPerAtom,
         address creator
-    )
-        internal
-        returns (bytes32[] memory)
-    {
-        resetPrank({ msgSender: creator });
+    ) internal returns (bytes32[] memory) {
+        resetPrank({msgSender: creator});
         uint256[] memory costs = new uint256[](atomDataArray.length);
         uint256 totalCost = 0;
         for (uint256 i = 0; i < atomDataArray.length; i++) {
             costs[i] = costPerAtom;
             totalCost += costPerAtom;
         }
-        return protocol.multiVault.createAtoms{ value: totalCost }(atomDataArray, costs);
+        return protocol.multiVault.createAtoms{value: totalCost}(atomDataArray, costs);
     }
 
     // Helper function to create a triple with proper setup
@@ -515,11 +508,8 @@ abstract contract BaseTest is Modifiers, Test {
         uint256 atomCost,
         uint256 tripleCost,
         address creator
-    )
-        internal
-        returns (bytes32 tripleId, bytes32[] memory atomIds)
-    {
-        resetPrank({ msgSender: creator });
+    ) internal returns (bytes32 tripleId, bytes32[] memory atomIds) {
+        resetPrank({msgSender: creator});
 
         // Create atoms
         bytes[] memory atomDataArray = new bytes[](3);
@@ -540,8 +530,12 @@ abstract contract BaseTest is Modifiers, Test {
         objectIds[0] = atomIds[2];
         assets[0] = tripleCost;
 
-        bytes32[] memory tripleIds =
-            protocol.multiVault.createTriples{ value: tripleCost }(subjectIds, predicateIds, objectIds, assets);
+        bytes32[] memory tripleIds = protocol.multiVault.createTriples{value: tripleCost}(
+            subjectIds,
+            predicateIds,
+            objectIds,
+            assets
+        );
         tripleId = tripleIds[0];
     }
 
@@ -553,12 +547,9 @@ abstract contract BaseTest is Modifiers, Test {
         uint256 curveId,
         uint256 amount,
         uint256 minShares
-    )
-        internal
-        returns (uint256 shares)
-    {
-        resetPrank({ msgSender: depositor });
-        return protocol.multiVault.deposit{ value: amount }(receiver, termId, curveId, minShares);
+    ) internal returns (uint256 shares) {
+        resetPrank({msgSender: depositor});
+        return protocol.multiVault.deposit{value: amount}(receiver, termId, curveId, minShares);
     }
 
     // Helper function to redeem shares from a term
@@ -569,11 +560,8 @@ abstract contract BaseTest is Modifiers, Test {
         uint256 curveId,
         uint256 shares,
         uint256 minAssets
-    )
-        internal
-        returns (uint256 assets)
-    {
-        resetPrank({ msgSender: redeemer });
+    ) internal returns (uint256 assets) {
+        resetPrank({msgSender: redeemer});
         return protocol.multiVault.redeem(receiver, termId, curveId, shares, minAssets);
     }
 
@@ -584,7 +572,7 @@ abstract contract BaseTest is Modifiers, Test {
 
     // Helper to set up approval for another user
     function setupApproval(address owner, address spender, ApprovalTypes approvalType) internal {
-        resetPrank({ msgSender: owner });
+        resetPrank({msgSender: owner});
         protocol.multiVault.approve(spender, approvalType);
     }
 
@@ -600,18 +588,15 @@ abstract contract BaseTest is Modifiers, Test {
         string[] memory atomStrings,
         uint256[] memory costs,
         address creator
-    )
-        internal
-        returns (bytes32[] memory)
-    {
+    ) internal returns (bytes32[] memory) {
         bytes[] memory atomDataArray = new bytes[](atomStrings.length);
         for (uint256 i = 0; i < atomStrings.length; i++) {
             atomDataArray[i] = abi.encodePacked(atomStrings[i]);
         }
 
-        resetPrank({ msgSender: creator });
+        resetPrank({msgSender: creator});
         uint256 totalCost = calculateTotalCost(costs);
-        return protocol.multiVault.createAtoms{ value: totalCost }(atomDataArray, costs);
+        return protocol.multiVault.createAtoms{value: totalCost}(atomDataArray, costs);
     }
 
     // Helper function for batch deposits
@@ -622,13 +607,10 @@ abstract contract BaseTest is Modifiers, Test {
         uint256[] memory curveIds,
         uint256[] memory amounts,
         uint256[] memory minShares
-    )
-        internal
-        returns (uint256[] memory shares)
-    {
-        resetPrank({ msgSender: depositor });
+    ) internal returns (uint256[] memory shares) {
+        resetPrank({msgSender: depositor});
         uint256 totalAmount = calculateTotalCost(amounts);
-        return protocol.multiVault.depositBatch{ value: totalAmount }(receiver, termIds, curveIds, amounts, minShares);
+        return protocol.multiVault.depositBatch{value: totalAmount}(receiver, termIds, curveIds, amounts, minShares);
     }
 
     // Helper function for batch redemptions
@@ -639,11 +621,8 @@ abstract contract BaseTest is Modifiers, Test {
         uint256[] memory curveIds,
         uint256[] memory shares,
         uint256[] memory minAssets
-    )
-        internal
-        returns (uint256[] memory assets)
-    {
-        resetPrank({ msgSender: redeemer });
+    ) internal returns (uint256[] memory assets) {
+        resetPrank({msgSender: redeemer});
         return protocol.multiVault.redeemBatch(receiver, termIds, curveIds, shares, minAssets);
     }
 
@@ -665,15 +644,15 @@ abstract contract BaseTest is Modifiers, Test {
     event AtomCreated(address indexed creator, bytes32 indexed atomId, bytes data, address atomWallet);
 
     function _setupUserWrappedTokenAndTrustBonding(address user) internal {
-        vm.deal({ account: user, newBalance: 10_000_000_000 ether });
-        resetPrank({ msgSender: user });
-        protocol.wrappedTrust.deposit{ value: 100_000 ether }();
+        vm.deal({account: user, newBalance: 10_000_000_000 ether});
+        resetPrank({msgSender: user});
+        protocol.wrappedTrust.deposit{value: 100_000 ether}();
         protocol.wrappedTrust.approve(address(protocol.trustBonding), type(uint256).max);
         _addToTrustBondingWhiteList(user);
     }
 
     function _addToTrustBondingWhiteList(address _user) internal {
-        resetPrank({ msgSender: users.admin });
+        resetPrank({msgSender: users.admin});
         protocol.trustBonding.add_to_whitelist(_user);
     }
 

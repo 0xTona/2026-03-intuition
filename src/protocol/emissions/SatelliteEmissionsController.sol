@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { AccessControlUpgradeable } from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { ReentrancyGuardUpgradeable } from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
-import { ISatelliteEmissionsController } from "src/interfaces/ISatelliteEmissionsController.sol";
-import { ITrustBonding } from "src/interfaces/ITrustBonding.sol";
-import { MetaERC20DispatchInit } from "src/interfaces/IMetaLayer.sol";
-import { CoreEmissionsControllerInit } from "src/interfaces/ICoreEmissionsController.sol";
-import { CoreEmissionsController } from "src/protocol/emissions/CoreEmissionsController.sol";
-import { FinalityState, MetaERC20Dispatcher } from "src/protocol/emissions/MetaERC20Dispatcher.sol";
+import {ISatelliteEmissionsController} from "src/interfaces/ISatelliteEmissionsController.sol";
+import {ITrustBonding} from "src/interfaces/ITrustBonding.sol";
+import {MetaERC20DispatchInit} from "src/interfaces/IMetaLayer.sol";
+import {CoreEmissionsControllerInit} from "src/interfaces/ICoreEmissionsController.sol";
+import {CoreEmissionsController} from "src/protocol/emissions/CoreEmissionsController.sol";
+import {FinalityState, MetaERC20Dispatcher} from "src/protocol/emissions/MetaERC20Dispatcher.sol";
 
 /**
  * @title  SatelliteEmissionsController
@@ -62,10 +62,7 @@ contract SatelliteEmissionsController is
         address baseEmissionsController,
         MetaERC20DispatchInit memory metaERC20DispatchInit,
         CoreEmissionsControllerInit memory checkpointInit
-    )
-        external
-        initializer
-    {
+    ) external initializer {
         if (admin == address(0)) {
             revert SatelliteEmissionsController_InvalidAddress();
         }
@@ -124,7 +121,7 @@ contract SatelliteEmissionsController is
      * those tokens until a user claims their rewards or until they are bridged back to the BaseEmissionsController to
      * be burned.
      */
-    receive() external payable { }
+    receive() external payable {}
 
     /* =================================================== */
     /*                    CONTROLLER                       */
@@ -179,11 +176,7 @@ contract SatelliteEmissionsController is
     function withdrawUnclaimedEmissions(
         uint256 epoch,
         address recipient
-    )
-        external
-        nonReentrant
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    ) external nonReentrant onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_TRUST_BONDING == address(0)) {
             revert SatelliteEmissionsController_TrustBondingNotSet();
         }

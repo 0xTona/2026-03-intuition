@@ -1,14 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import {
-    BondingCurveConfig,
-    GeneralConfig,
-    AtomConfig,
-    TripleConfig,
-    WalletConfig,
-    VaultFees
-} from "src/interfaces/IMultiVaultCore.sol";
+import {BondingCurveConfig, GeneralConfig, AtomConfig, TripleConfig, WalletConfig, VaultFees} from "src/interfaces/IMultiVaultCore.sol";
 
 /* =================================================== */
 /*                          STRUCTS                    */
@@ -65,7 +58,9 @@ interface IMultiVault {
     /// @param atomWalletOwner The address of the atom wallet owner
     /// @param feesClaimed The amount of fees claimed from the atom wallet
     event AtomWalletDepositFeesClaimed(
-        bytes32 indexed termId, address indexed atomWalletOwner, uint256 indexed feesClaimed
+        bytes32 indexed termId,
+        address indexed atomWalletOwner,
+        uint256 indexed feesClaimed
     );
 
     /// @notice Emitted when total utilization is added for an epoch
@@ -82,7 +77,10 @@ interface IMultiVault {
     /// @param valueAdded The value of the utilization added (in TRUST tokens)
     /// @param personalUtilization The personal utilization for the user after adding the value
     event PersonalUtilizationAdded(
-        address indexed user, uint256 indexed epoch, int256 indexed valueAdded, int256 personalUtilization
+        address indexed user,
+        uint256 indexed epoch,
+        int256 indexed valueAdded,
+        int256 personalUtilization
     );
 
     /// @notice Emitted when total utilization is removed for an epoch
@@ -99,7 +97,10 @@ interface IMultiVault {
     /// @param valueRemoved The value of the utilization removed (in TRUST tokens)
     /// @param personalUtilization The personal utilization for the user after removing the value
     event PersonalUtilizationRemoved(
-        address indexed user, uint256 indexed epoch, int256 indexed valueRemoved, int256 personalUtilization
+        address indexed user,
+        uint256 indexed epoch,
+        int256 indexed valueRemoved,
+        int256 personalUtilization
     );
 
     /// @notice Emitted when assets are deposited into a vault
@@ -207,7 +208,11 @@ interface IMultiVault {
     /// @param predicateId The ID of the predicate atom
     /// @param objectId The ID of the object atom
     event TripleCreated(
-        address indexed creator, bytes32 indexed termId, bytes32 subjectId, bytes32 predicateId, bytes32 objectId
+        address indexed creator,
+        bytes32 indexed termId,
+        bytes32 subjectId,
+        bytes32 predicateId,
+        bytes32 objectId
     );
 
     /* =================================================== */
@@ -356,10 +361,7 @@ interface IMultiVault {
     function previewAtomCreate(
         bytes32 termId,
         uint256 assets
-    )
-        external
-        view
-        returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees);
+    ) external view returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees);
 
     /// @notice Simulates a deposit of assets into a vault
     /// @dev Returns the expected shares to be minted and the net assets credited after fees
@@ -372,10 +374,7 @@ interface IMultiVault {
         bytes32 termId,
         uint256 curveId,
         uint256 assets
-    )
-        external
-        view
-        returns (uint256 shares, uint256 assetsAfterFees);
+    ) external view returns (uint256 shares, uint256 assetsAfterFees);
 
     /// @notice Simulates a redemption of shares from a vault
     /// @dev Returns the net assets the user would receive after fees and the shares to be burned
@@ -388,10 +387,7 @@ interface IMultiVault {
         bytes32 termId,
         uint256 curveId,
         uint256 shares
-    )
-        external
-        view
-        returns (uint256 assetsAfterFees, uint256 sharesUsed);
+    ) external view returns (uint256 assetsAfterFees, uint256 sharesUsed);
 
     /// @notice Simulates the creation of a triple with an initial deposit
     /// @dev Returns the expected shares to be minted and the net assets credited after fees
@@ -404,10 +400,7 @@ interface IMultiVault {
     function previewTripleCreate(
         bytes32 termId,
         uint256 assets
-    )
-        external
-        view
-        returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees);
+    ) external view returns (uint256 shares, uint256 assetsAfterFixedFees, uint256 assetsAfterFees);
 
     /// @notice Returns the amount of assets that would be charged as a protocol fee for a given amount
     /// @param assets The amount of assets to calculate the fee on
@@ -432,10 +425,7 @@ interface IMultiVault {
     function createAtoms(
         bytes[] calldata atomDatas,
         uint256[] calldata assets
-    )
-        external
-        payable
-        returns (bytes32[] memory);
+    ) external payable returns (bytes32[] memory);
 
     /**
      * @notice Creates multiple triple vaults with initial deposits
@@ -450,10 +440,7 @@ interface IMultiVault {
         bytes32[] calldata predicateIds,
         bytes32[] calldata objectIds,
         uint256[] calldata assets
-    )
-        external
-        payable
-        returns (bytes32[] memory);
+    ) external payable returns (bytes32[] memory);
 
     /**
      * @notice Deposits assets into a vault and mints shares to the receiver
@@ -468,10 +455,7 @@ interface IMultiVault {
         bytes32 termId,
         uint256 curveId,
         uint256 minShares
-    )
-        external
-        payable
-        returns (uint256);
+    ) external payable returns (uint256);
 
     /**
      * @notice Deposits assets into multiple vaults in a single transaction
@@ -488,10 +472,7 @@ interface IMultiVault {
         uint256[] calldata curveIds,
         uint256[] calldata assets,
         uint256[] calldata minShares
-    )
-        external
-        payable
-        returns (uint256[] memory);
+    ) external payable returns (uint256[] memory);
 
     /**
      * @notice Redeems shares from a vault and returns assets to the receiver
@@ -508,9 +489,7 @@ interface IMultiVault {
         uint256 curveId,
         uint256 shares,
         uint256 minAssets
-    )
-        external
-        returns (uint256);
+    ) external returns (uint256);
 
     /**
      * @notice Redeems shares from multiple vaults in a single transaction
@@ -527,9 +506,7 @@ interface IMultiVault {
         uint256[] calldata curveIds,
         uint256[] calldata shares,
         uint256[] calldata minAssets
-    )
-        external
-        returns (uint256[] memory);
+    ) external returns (uint256[] memory);
 
     /**
      * @notice Returns the accumulated protocol fees for a specific epoch

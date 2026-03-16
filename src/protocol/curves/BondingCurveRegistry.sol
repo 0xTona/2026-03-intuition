@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.29;
 
-import { Initializable } from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import { Ownable2StepUpgradeable } from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 
-import { IBaseCurve } from "src/interfaces/IBaseCurve.sol";
-import { IBondingCurveRegistry } from "src/interfaces/IBondingCurveRegistry.sol";
+import {IBaseCurve} from "src/interfaces/IBaseCurve.sol";
+import {IBondingCurveRegistry} from "src/interfaces/IBondingCurveRegistry.sol";
 
 /**
  * @title  BondingCurveRegistry
@@ -133,12 +133,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 totalAssets,
         uint256 totalShares,
         uint256 id
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 shares)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 shares) {
         return IBaseCurve(curveAddresses[id]).previewDeposit(assets, totalAssets, totalShares);
     }
 
@@ -153,12 +148,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 totalShares,
         uint256 totalAssets,
         uint256 id
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 assets)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 assets) {
         return IBaseCurve(curveAddresses[id]).previewRedeem(shares, totalShares, totalAssets);
     }
 
@@ -173,12 +163,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 totalShares,
         uint256 totalAssets,
         uint256 id
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 assets)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 assets) {
         return IBaseCurve(curveAddresses[id]).previewMint(shares, totalShares, totalAssets);
     }
 
@@ -193,12 +178,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 totalAssets,
         uint256 totalShares,
         uint256 id
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 shares)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 shares) {
         return IBaseCurve(curveAddresses[id]).previewWithdraw(assets, totalAssets, totalShares);
     }
 
@@ -213,12 +193,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 totalAssets,
         uint256 totalShares,
         uint256 id
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 shares)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 shares) {
         return IBaseCurve(curveAddresses[id]).convertToShares(assets, totalAssets, totalShares);
     }
 
@@ -233,12 +208,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 totalShares,
         uint256 totalAssets,
         uint256 id
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 assets)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 assets) {
         return IBaseCurve(curveAddresses[id]).convertToAssets(shares, totalShares, totalAssets);
     }
 
@@ -251,12 +221,7 @@ contract BondingCurveRegistry is IBondingCurveRegistry, Ownable2StepUpgradeable 
         uint256 id,
         uint256 totalShares,
         uint256 totalAssets
-    )
-        external
-        view
-        onlyValidCurveId(id)
-        returns (uint256 sharePrice)
-    {
+    ) external view onlyValidCurveId(id) returns (uint256 sharePrice) {
         return IBaseCurve(curveAddresses[id]).currentPrice(totalShares, totalAssets);
     }
 
